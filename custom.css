@@ -1,0 +1,110 @@
+/* ---------------------------CUSTOM STYLING---------------------------- */
+
+/* Dino Font by Devfolio */
+
+@font-face {
+  font-family: 'OnchainDino';
+  src: url('extra/OnchainDino-Regular.woff2') format('woff2');
+  font-weight: normal;
+  font-style: normal;
+}
+
+.trex-game {
+  max-width: 600px;
+  width: 100%;
+}
+
+.trex-game .runner-container {
+  transition: all 0.3s;
+}
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  font-family: OnchainDino;
+  text-transform: uppercase;
+  color: rgb(122, 122, 122);
+}
+
+.container {
+  display: flex;
+  align-items: center;
+  flex-direction: column;
+  gap: 32px;
+}
+
+.header {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+}
+
+.config-box {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  align-items: center;
+  font-family: OnchainDino;
+  text-transform: uppercase;
+  color: rgb(122, 122, 122);
+}
+
+.flex-box {
+  display: flex;
+  gap: 48px;
+  justify-content: space-between;
+}
+
+/* Mobile Screen */
+@media screen and (max-width: 768px) {
+  .flex-box {
+    flex-direction: column;
+    gap: 24px;
+  }
+}
+
+.flex-item {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 8px;
+}
+
+.flex-item input {
+  width: 180px;
+}
+
+.onchain-cta {
+  background-color: transparent;
+  border: none;
+  outline: none;
+  margin-top: 32px;
+  margin-bottom: 16px;
+  cursor: pointer;
+}
+
+.onchain-cta:active {
+  scale: 0.95;
+}
+
+.link-section {
+  margin-top: 32px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  justify-content: center;
+  align-items: center;
+}
+
+a {
+  font-size: 16px;
+  color: rgb(122, 122, 122);
+}
+
+a:active {
+  scale: 0.95;
+}
