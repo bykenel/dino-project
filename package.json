@@ -3,6 +3,8 @@
   "version": "1.0.0",
   "main": "index.js",
   "scripts": {
+    "build": "node scripts/build-ship.mjs",
+    "deploy:pages": "node scripts/deploy-github-io.mjs",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "author": "Devfolio Engineering <engineering@devfolio.co> (https://devfolio.co)",

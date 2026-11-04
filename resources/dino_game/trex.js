@@ -147,6 +147,10 @@ export class Trex {
    */
   setFlashing(status) {
     this.flashing = status;
+    if (!status) {
+      this.timer = 0;
+      this.canvasCtx.globalAlpha = 1;
+    }
   }
 
   /**
@@ -343,6 +347,8 @@ export class Trex {
    */
   startJump(speed) {
     if (!this.jumping) {
+      // Jump cancels duck so mid-air never draws the duck frames.
+      this.ducking = false;
       this.update(0, Trex.status.JUMPING);
       // Tweak the jump velocity based on the speed.
       this.jumpVelocity = this.config.INITIAL_JUMP_VELOCITY - speed / 10;
@@ -433,10 +439,14 @@ export class Trex {
    * @param {boolean} isDucking
    */
   setDuck(isDucking) {
+    // Never enter duck frames mid-air.
+    if (isDucking && this.jumping) {
+      return;
+    }
     if (isDucking && this.status !== Trex.status.DUCKING) {
       this.update(0, Trex.status.DUCKING);
       this.ducking = true;
-    } else if (this.status === Trex.status.DUCKING) {
+    } else if (!isDucking && this.status === Trex.status.DUCKING) {
       this.update(0, Trex.status.RUNNING);
       this.ducking = false;
     }
@@ -451,6 +461,7 @@ export class Trex {
     this.jumpVelocity = 0;
     this.jumping = false;
     this.ducking = false;
+    this.setFlashing(false);
     this.update(0, Trex.status.RUNNING);
     this.midair = false;
     this.speedDrop = false;
@@ -546,6 +557,7 @@ Trex.animFrames = {
   },
   DUCKING: {
     frames: [264, 323],
-    msPerFrame: 1000 / 8,
+    // Match run cadence so the crawl does not feel sluggish.
+    msPerFrame: 1000 / 12,
   },
 };

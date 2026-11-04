@@ -7,7 +7,10 @@
 import { HIDDEN_CLASS } from '../constants.js';
 
 import { FPS, IS_HIDPI, IS_IOS, IS_MOBILE, IS_RTL } from './constants.js';
+import { DinoAI } from './dino_ai.js';
 import { DistanceMeter } from './distance_meter.js';
+import { Economy } from './economy.js';
+import { GameHud } from './game_hud.js';
 import { GameOverPanel } from './game_over_panel.js';
 import { GeneratedSoundFx } from './generated_sound_fx.js';
 import { Horizon } from './horizon.js';
@@ -17,6 +20,8 @@ import {
   GAME_TYPE,
   spriteDefinitionByType,
 } from './offline-sprite-definitions.js';
+import { boxesOverlap, Projectile } from './projectile.js';
+import { REVENGE_CONFIG } from './revenge_config.js';
 import { Trex } from './trex.js';
 import { getTimeStamp } from './utils.js';
 
@@ -605,6 +610,7 @@ export class Runner {
     // this.outerContainerEl.appendChild(this.slowSpeedCheckboxLabel);
 
     this.startListening();
+    this.initRevengeMode();
     this.update();
 
     window.addEventListener(
@@ -620,6 +626,45 @@ export class Runner {
     darkModeMediaQuery.addEventListener('change', e => {
       this.isDarkMode = e.matches;
     });
+  }
+
+  /**
+   * Wire Revenge of the Desert clicker/spawner systems.
+   */
+  initRevengeMode() {
+    this.revengeMode = true;
+    this.economy = new Economy();
+    this.dinoAi = new DinoAI();
+    this.projectiles = [];
+    this.dinoHp = REVENGE_CONFIG.MAX_HP;
+    this.escapeProgress = 0;
+    this.wave = 1;
+    this.iframeTimer = 0;
+    this.hurtEscapeTimer = 0;
+    this.slowTimer = 0;
+    this.baseSpeedBeforeSlow = this.config.SPEED;
+    this.revengeEnded = false;
+    this.revengeVictory = false;
+    this.hitObstacleIds = new WeakSet();
+    this.meteorCooldownUntil = 0;
+    this.lastGroundHazardAt = 0;
+    this.revengePaused = false;
+    this.revengeRunStartedAt = 0;
+
+    this.horizon.autoSpawnEnabled = false;
+
+    const hudMount = document.getElementById('revenge-hud');
+    if (hudMount) {
+      this.hud = new GameHud(hudMount, {
+        onClicker: () => this.handleRevengeClicker(),
+        onSpawn: id => this.handleRevengeSpawn(id),
+        onRestart: () => this.restartRevenge(),
+        onStart: () => this.startRevengeGame(),
+      });
+      this.syncHud();
+    }
+
+    this.canvas.style.cursor = 'default';
   }
 
   /**
@@ -701,13 +746,36 @@ export class Runner {
       this.playingIntro = true;
       this.tRex.playingIntro = true;
 
-      // CSS animation definition.
+      // CSS animation definition — use a local stylesheet (index 0 may be
+      // a cross-origin Google Fonts sheet that throws on insertRule).
       const keyframes =
         `@-webkit-keyframes intro { ` +
         `from { width:${Trex.config.WIDTH}px }` +
         `to { width: ${this.dimensions.WIDTH}px }` +
         `}`;
-      document.styleSheets[0].insertRule(keyframes, 0);
+      try {
+        let sheet = null;
+        for (let i = 0; i < document.styleSheets.length; i++) {
+          const candidate = document.styleSheets[i];
+          try {
+            // Accessing cssRules throws for cross-origin sheets.
+            void candidate.cssRules;
+            sheet = candidate;
+            break;
+          } catch (err) {
+            // Keep looking for a same-origin sheet.
+          }
+        }
+        if (sheet) {
+          sheet.insertRule(keyframes, 0);
+        } else {
+          const styleEl = document.createElement('style');
+          styleEl.textContent = keyframes;
+          document.head.appendChild(styleEl);
+        }
+      } catch (err) {
+        // Fall through; width is still set below.
+      }
 
       this.containerEl.addEventListener(
         Runner.events.ANIM_END,
@@ -807,7 +875,8 @@ export class Runner {
     this.updatePending = false;
 
     const now = getTimeStamp();
-    let deltaTime = now - (this.time || now);
+    // Cap spikes (tab blur / long stalls) so escape/HP systems cannot jump seconds.
+    let deltaTime = Math.min(now - (this.time || now), 100);
 
     // Flashing when switching game modes.
     if (this.altGameModeFlashTimer < 0 || this.altGameModeFlashTimer === 0) {
@@ -821,6 +890,25 @@ export class Runner {
     }
 
     this.time = now;
+
+    // Revenge pause: freeze simulation but keep RAF alive for UI.
+    if (
+      this.revengeMode &&
+      this.revengePaused &&
+      this.playing &&
+      !this.revengeEnded
+    ) {
+      this.clearCanvas();
+      // deltaTime 0 freezes motion but still redraws obstacles / horizon.
+      this.horizon.update(0, this.currentSpeed, true);
+      this.tRex.update(0);
+      for (let i = 0; i < this.projectiles.length; i++) {
+        this.projectiles[i].draw(this.canvasCtx);
+      }
+      this.syncHud();
+      this.scheduleNextUpdate();
+      return;
+    }
 
     if (this.playing) {
       this.clearCanvas();
@@ -841,10 +929,16 @@ export class Runner {
       }
 
       this.runningTime += deltaTime;
-      const hasObstacles = this.runningTime > this.config.CLEAR_TIME;
+      const hasObstacles = this.revengeMode
+        ? this.activated && !this.playingIntro
+        : this.runningTime > this.config.CLEAR_TIME;
 
-      // First jump triggers the intro.
-      if (this.tRex.jumpCount === 1 && !this.playingIntro) {
+      // Classic: first jump triggers intro. Revenge starts via HUD.
+      if (
+        !this.revengeMode &&
+        this.tRex.jumpCount === 1 &&
+        !this.playingIntro
+      ) {
         this.playIntro();
       }
 
@@ -862,99 +956,597 @@ export class Runner {
         );
       }
 
-      // Check for collisions.
-      let collision =
-        hasObstacles && checkForCollision(this.horizon.obstacles[0], this.tRex);
+      if (this.revengeMode) {
+        this.updateRevengeFrame(deltaTime, hasObstacles);
+      } else {
+        // Classic runner collision / scoring.
+        let collision =
+          hasObstacles &&
+          checkForCollision(this.horizon.obstacles[0], this.tRex);
 
-      // For a11y, audio cues.
-      if (Runner.audioCues && hasObstacles) {
-        const jumpObstacle =
-          this.horizon.obstacles[0].typeConfig.type !== 'COLLECTABLE';
+        if (Runner.audioCues && hasObstacles) {
+          const jumpObstacle =
+            this.horizon.obstacles[0].typeConfig.type !== 'COLLECTABLE';
 
-        if (!this.horizon.obstacles[0].jumpAlerted) {
-          const threshold = Runner.isMobileMouseInput
-            ? Runner.config.AUDIOCUE_PROXIMITY_THRESHOLD_MOBILE_A11Y
-            : Runner.config.AUDIOCUE_PROXIMITY_THRESHOLD;
-          const adjProximityThreshold =
-            threshold +
-            threshold * Math.log10(this.currentSpeed / Runner.config.SPEED);
+          if (!this.horizon.obstacles[0].jumpAlerted) {
+            const threshold = Runner.isMobileMouseInput
+              ? Runner.config.AUDIOCUE_PROXIMITY_THRESHOLD_MOBILE_A11Y
+              : Runner.config.AUDIOCUE_PROXIMITY_THRESHOLD;
+            const adjProximityThreshold =
+              threshold +
+              threshold * Math.log10(this.currentSpeed / Runner.config.SPEED);
 
-          if (this.horizon.obstacles[0].xPos < adjProximityThreshold) {
-            if (jumpObstacle) {
-              this.generatedSoundFx.jump();
+            if (this.horizon.obstacles[0].xPos < adjProximityThreshold) {
+              if (jumpObstacle) {
+                this.generatedSoundFx.jump();
+              }
+              this.horizon.obstacles[0].jumpAlerted = true;
             }
-            this.horizon.obstacles[0].jumpAlerted = true;
           }
         }
-      }
 
-      // Activated alt game mode.
-      if (
-        Runner.isAltGameModeEnabled() &&
-        collision &&
-        this.horizon.obstacles[0].typeConfig.type === 'COLLECTABLE'
-      ) {
-        this.horizon.removeFirstObstacle();
-        this.tRex.setFlashing(true);
-        collision = false;
-        this.altGameModeFlashTimer = this.config.FLASH_DURATION;
-        this.runningTime = 0;
-        this.generatedSoundFx.collect();
-      }
-
-      if (!collision) {
-        this.distanceRan += (this.currentSpeed * deltaTime) / this.msPerFrame;
-
-        if (this.currentSpeed < this.config.MAX_SPEED) {
-          this.currentSpeed += this.config.ACCELERATION;
+        if (
+          Runner.isAltGameModeEnabled() &&
+          collision &&
+          this.horizon.obstacles[0].typeConfig.type === 'COLLECTABLE'
+        ) {
+          this.horizon.removeFirstObstacle();
+          this.tRex.setFlashing(true);
+          collision = false;
+          this.altGameModeFlashTimer = this.config.FLASH_DURATION;
+          this.runningTime = 0;
+          this.generatedSoundFx.collect();
         }
-      } else {
-        this.gameOver();
-      }
 
-      const playAchievementSound = this.distanceMeter.update(
-        deltaTime,
-        Math.ceil(this.distanceRan)
-      );
+        if (!collision) {
+          this.distanceRan +=
+            (this.currentSpeed * deltaTime) / this.msPerFrame;
 
-      if (!Runner.audioCues && playAchievementSound) {
-        this.playSound(this.soundFx.SCORE);
-      }
-
-      // Night mode.
-      if (!Runner.isAltGameModeEnabled()) {
-        if (this.invertTimer > this.config.INVERT_FADE_DURATION) {
-          this.invertTimer = 0;
-          this.invertTrigger = false;
-          this.invert(false);
-        } else if (this.invertTimer) {
-          this.invertTimer += deltaTime;
+          if (this.currentSpeed < this.config.MAX_SPEED) {
+            this.currentSpeed += this.config.ACCELERATION;
+          }
         } else {
-          const actualDistance = this.distanceMeter.getActualDistance(
-            Math.ceil(this.distanceRan)
-          );
+          this.gameOver();
+        }
 
-          if (actualDistance > 0) {
-            this.invertTrigger = !(
-              actualDistance % this.config.INVERT_DISTANCE
+        const playAchievementSound = this.distanceMeter.update(
+          deltaTime,
+          Math.ceil(this.distanceRan)
+        );
+
+        if (!Runner.audioCues && playAchievementSound) {
+          this.playSound(this.soundFx.SCORE);
+        }
+
+        if (!Runner.isAltGameModeEnabled()) {
+          if (this.invertTimer > this.config.INVERT_FADE_DURATION) {
+            this.invertTimer = 0;
+            this.invertTrigger = false;
+            this.invert(false);
+          } else if (this.invertTimer) {
+            this.invertTimer += deltaTime;
+          } else {
+            const actualDistance = this.distanceMeter.getActualDistance(
+              Math.ceil(this.distanceRan)
             );
 
-            if (this.invertTrigger && this.invertTimer === 0) {
-              this.invertTimer += deltaTime;
-              this.invert(false);
+            if (actualDistance > 0) {
+              this.invertTrigger = !(
+                actualDistance % this.config.INVERT_DISTANCE
+              );
+
+              if (this.invertTrigger && this.invertTimer === 0) {
+                this.invertTimer += deltaTime;
+                this.invert(false);
+              }
             }
           }
         }
       }
+    }
+
+    // Keep HUD fresh on the start screen without granting passive bones.
+    if (
+      this.revengeMode &&
+      !this.playing &&
+      !this.revengeEnded &&
+      this.economy
+    ) {
+      this.syncHud();
     }
 
     if (
       this.playing ||
-      (!this.activated && this.tRex.blinkCount < Runner.config.MAX_BLINK_COUNT)
+      (!this.activated && this.tRex.blinkCount < Runner.config.MAX_BLINK_COUNT) ||
+      (this.revengeMode && !this.revengeEnded)
     ) {
       this.tRex.update(deltaTime);
       this.scheduleNextUpdate();
     }
+  }
+
+  /**
+   * Revenge-mode per-frame systems: economy, AI, HP, escape, projectiles.
+   * @param {number} deltaTime
+   * @param {boolean} hasObstacles
+   */
+  updateRevengeFrame(deltaTime, hasObstacles) {
+    if (this.revengeEnded) {
+      return;
+    }
+
+    this.economy.tick(deltaTime);
+
+    // Slow effect tick (escape only — world/obstacle speed stays normal).
+    if (this.slowTimer > 0) {
+      this.slowTimer -= deltaTime;
+      if (this.slowTimer <= 0) {
+        this.slowTimer = 0;
+        if (this.tRex) {
+          this.tRex.msPerFrame = this.tRex.ducking
+            ? Trex.animFrames.DUCKING.msPerFrame
+            : Trex.animFrames.RUNNING.msPerFrame;
+        }
+      } else if (this.tRex && !this.tRex.jumping) {
+        // Sluggish feet while escape is slowed; obstacles keep scrolling.
+        const base = this.tRex.ducking
+          ? Trex.animFrames.DUCKING.msPerFrame
+          : Trex.animFrames.RUNNING.msPerFrame;
+        this.tRex.msPerFrame = base / REVENGE_CONFIG.SLOW_SPEED_FACTOR;
+      }
+    }
+
+    if (this.iframeTimer > 0) {
+      this.iframeTimer -= deltaTime;
+      if (this.iframeTimer <= 0) {
+        this.iframeTimer = 0;
+        this.tRex.setFlashing(false);
+      }
+    }
+
+    if (this.hurtEscapeTimer > 0) {
+      this.hurtEscapeTimer -= deltaTime;
+    }
+
+    const canAiAct = this.activated && !this.playingIntro && !this.crashed;
+    this.dinoAi.update(
+      deltaTime,
+      this.horizon.obstacles,
+      this.tRex,
+      this.currentSpeed,
+      getTimeStamp(),
+      canAiAct
+    );
+
+    // Obstacle hits → HP damage (all obstacles, once each while overlapping).
+    if (hasObstacles && this.iframeTimer <= 0) {
+      for (let i = 0; i < this.horizon.obstacles.length; i++) {
+        const obstacle = this.horizon.obstacles[i];
+        if (obstacle.remove || this.hitObstacleIds.has(obstacle)) {
+          continue;
+        }
+        if (checkForCollision(obstacle, this.tRex)) {
+          this.applyRevengeHit(obstacle);
+          break;
+        }
+      }
+    }
+
+    // Projectiles.
+    for (let i = this.projectiles.length - 1; i >= 0; i--) {
+      const p = this.projectiles[i];
+      p.update(deltaTime);
+      p.draw(this.canvasCtx);
+
+      if (!p.damageApplied) {
+        const pBox = p.getCollisionBox();
+        const tRexBox = new CollisionBox(
+          this.tRex.xPos + 1,
+          this.tRex.yPos + 1,
+          this.tRex.config.WIDTH - 2,
+          this.tRex.config.HEIGHT - 2
+        );
+        const overlapping = boxesOverlap(pBox, tRexBox);
+        if (overlapping || p.arrived) {
+          if (overlapping && !p.arrived) {
+            p.arrived = true;
+          }
+          // Paid strike: apply once when iframes allow (retries while arrived).
+          if (this.iframeTimer <= 0) {
+            this.applyRevengeDamage(
+              REVENGE_CONFIG.HAZARDS.meteor.damage,
+              false,
+              { meteor: true }
+            );
+            p.damageApplied = true;
+          }
+        }
+      }
+
+      if (p.remove) {
+        this.projectiles.splice(i, 1);
+      }
+    }
+
+    // Escape meter + mild acceleration.
+    if (this.activated && !this.playingIntro) {
+      const escapeFactor =
+        this.hurtEscapeTimer > 0
+          ? 0
+          : this.slowTimer > 0
+          ? REVENGE_CONFIG.SLOW_ESCAPE_FACTOR
+          : 1;
+      const waveEscapeMult =
+        1 + (this.wave - 1) * REVENGE_CONFIG.ESCAPE_WAVE_BONUS;
+      const fillRate =
+        (REVENGE_CONFIG.ESCAPE_FILL_PER_SECOND_AT_BASE_SPEED *
+          waveEscapeMult *
+          (this.currentSpeed / this.config.SPEED) *
+          escapeFactor *
+          deltaTime) /
+        1000;
+      this.escapeProgress = Math.min(100, this.escapeProgress + fillRate);
+
+      if (this.slowTimer <= 0 && this.currentSpeed < this.config.MAX_SPEED) {
+        this.currentSpeed += this.config.ACCELERATION;
+      }
+
+      this.distanceRan += (this.currentSpeed * deltaTime) / this.msPerFrame;
+      this.updateWaveFromEscape();
+    }
+
+    this.syncHud();
+
+    if (this.dinoHp <= 0) {
+      this.endRevenge(true);
+      return;
+    }
+    if (this.escapeProgress >= 100) {
+      this.endRevenge(false);
+    }
+  }
+
+  /**
+   * @param {!Obstacle} obstacle
+   */
+  applyRevengeHit(obstacle) {
+    this.hitObstacleIds.add(obstacle);
+    const type = obstacle.typeConfig.type;
+    let damage = REVENGE_CONFIG.HAZARDS.bush.damage;
+    let slow = false;
+    if (type === 'PTERODACTYL') {
+      damage = REVENGE_CONFIG.HAZARDS.ptero.damage;
+    } else if (type === 'CACTUS_LARGE') {
+      damage = REVENGE_CONFIG.HAZARDS.boulder.damage;
+      slow = true;
+    } else if (type === 'CACTUS_SMALL') {
+      damage = REVENGE_CONFIG.HAZARDS.bush.damage;
+    }
+    if (obstacle.comboBonus) {
+      damage += obstacle.comboBonus;
+    }
+    this.applyRevengeDamage(damage, slow, {});
+  }
+
+  /**
+   * @param {number} damage
+   * @param {boolean} slow
+   * @param {Object=} opts
+   * @param {boolean=} opts.meteor
+   * @param {boolean=} opts.combo
+   */
+  applyRevengeDamage(damage, slow, opts) {
+    opts = opts || {};
+    if (this.revengeEnded || this.iframeTimer > 0) {
+      return;
+    }
+    this.dinoHp = Math.max(0, this.dinoHp - damage);
+    this.iframeTimer = REVENGE_CONFIG.IFRAME_MS;
+    this.hurtEscapeTimer = REVENGE_CONFIG.HURT_ESCAPE_PAUSE_MS;
+    this.tRex.setFlashing(true);
+    this.playSound(this.soundFx.HIT);
+    vibrate(100);
+
+    if (this.hud) {
+      this.hud.showDamageFloat(damage, {
+        meteor: !!opts.meteor,
+        combo: !!opts.combo,
+      });
+      this.hud.shakeCanvas(this.containerEl);
+    }
+
+    if (slow) {
+      this.slowTimer = REVENGE_CONFIG.SLOW_DURATION_MS;
+    }
+  }
+
+  updateWaveFromEscape() {
+    const nextWave = Math.min(
+      5,
+      Math.floor(this.escapeProgress / REVENGE_CONFIG.WAVE_ESCAPE_STEP) + 1
+    );
+    if (nextWave !== this.wave) {
+      this.wave = nextWave;
+      this.dinoAi.setWave(this.wave);
+      this.economy.setWave(this.wave);
+    }
+  }
+
+  syncHud() {
+    if (!this.hud) {
+      return;
+    }
+    this.hud.update({
+      bones: this.economy.bones,
+      hp: this.dinoHp,
+      maxHp: REVENGE_CONFIG.MAX_HP,
+      escapeProgress: this.escapeProgress,
+      wave: this.wave,
+      clickReward: this.economy.clickReward,
+      cps: this.economy.cps,
+      playing: this.playing && !this.revengeEnded,
+      ended: this.revengeEnded,
+      paused: this.revengePaused,
+      meteorOnCooldown: getTimeStamp() < this.meteorCooldownUntil,
+      meteorCooldownRemainingMs: Math.max(
+        0,
+        this.meteorCooldownUntil - getTimeStamp()
+      ),
+      obstacleCapReached:
+        this.countLiveObstacles() >= REVENGE_CONFIG.MAX_LIVE_OBSTACLES,
+    });
+  }
+
+  countLiveObstacles() {
+    let n = 0;
+    const list = this.horizon.obstacles;
+    for (let i = 0; i < list.length; i++) {
+      if (!list[i].remove) {
+        n++;
+      }
+    }
+    return n;
+  }
+
+  handleRevengeClicker() {
+    if (this.revengeEnded || this.revengePaused) {
+      return;
+    }
+    // Allow mining before start to bank bones.
+    const amount = this.economy.click();
+    if (this.hud) {
+      this.hud.showClickFeedback(amount);
+      this.syncHud();
+    }
+  }
+
+  /**
+   * @param {string} hazardId bush|ptero|boulder|meteor
+   */
+  handleRevengeSpawn(hazardId) {
+    if (
+      !this.playing ||
+      this.revengeEnded ||
+      this.playingIntro ||
+      this.revengePaused
+    ) {
+      return;
+    }
+    const cfg = REVENGE_CONFIG.HAZARDS[hazardId];
+    if (!cfg) {
+      return;
+    }
+    if (!this.economy.canAfford(cfg.cost)) {
+      return;
+    }
+
+    if (hazardId === 'meteor') {
+      this.fireMeteorAtDino(cfg);
+      return;
+    }
+
+    if (!cfg.typeName) {
+      return;
+    }
+
+    if (this.countLiveObstacles() >= REVENGE_CONFIG.MAX_LIVE_OBSTACLES) {
+      return;
+    }
+
+    const spawned = this.horizon.spawnPlayerObstacle(
+      cfg.typeName,
+      this.currentSpeed,
+      {
+        preferredYPos: cfg.preferredYPos,
+        stackOffset: REVENGE_CONFIG.SPAWN_STACK_OFFSET,
+      }
+    );
+    if (!spawned) {
+      return;
+    }
+
+    const now = getTimeStamp();
+    // Combo tip: Cacto Grande + Ptero only.
+    if (hazardId === 'boulder') {
+      this.lastGroundHazardAt = now;
+    } else if (
+      hazardId === 'ptero' &&
+      this.lastGroundHazardAt &&
+      now - this.lastGroundHazardAt <= REVENGE_CONFIG.COMBO_WINDOW_MS
+    ) {
+      spawned.comboBonus = REVENGE_CONFIG.COMBO_BONUS_DAMAGE;
+      if (this.hud) {
+        this.hud.showDamageFloat('Combo!', { combo: true });
+      }
+      this.lastGroundHazardAt = 0;
+    } else if (hazardId === 'bush') {
+      this.lastGroundHazardAt = 0;
+    }
+
+    this.economy.spend(cfg.cost);
+    this.playSound(this.soundFx.BUTTON_PRESS);
+    this.syncHud();
+  }
+
+  /**
+   * Shop / hotkey meteor aimed at the dinosaur.
+   * @param {Object} cfg
+   */
+  fireMeteorAtDino(cfg) {
+    const now = getTimeStamp();
+    if (now < this.meteorCooldownUntil) {
+      return;
+    }
+    if (!this.economy.spend(cfg.cost)) {
+      return;
+    }
+    this.meteorCooldownUntil = now + REVENGE_CONFIG.METEOR_COOLDOWN_MS;
+    const x = this.tRex.xPos + this.tRex.config.WIDTH / 2;
+    const y = this.tRex.yPos + this.tRex.config.HEIGHT / 2;
+    this.projectiles.push(new Projectile(x, y, cfg.damage));
+    this.playSound(this.soundFx.BUTTON_PRESS);
+    this.syncHud();
+  }
+
+  startRevengeGame() {
+    if (this.playing || this.revengeEnded) {
+      return;
+    }
+    this.loadSounds();
+    this.setPlayStatus(true);
+    // Skip CSS intro — same path as restart — so a stylesheet insertRule
+    // failure cannot leave playingIntro stuck and the world frozen.
+    this.activated = true;
+    this.playingIntro = false;
+    this.revengePaused = false;
+    this.revengeRunStartedAt = getTimeStamp();
+    this.tRex.playingIntro = false;
+    this.tRex.xPos = this.tRex.config.START_X_POS;
+    this.tRex.xInitialPos = this.tRex.xPos;
+    this.tRex.update(0, Trex.status.RUNNING);
+    this.containerEl.style.width = `${this.dimensions.WIDTH}px`;
+    this.containerEl.style.webkitAnimation = '';
+    this.startGame();
+    this.update();
+    if (window.errorPageController) {
+      errorPageController.trackEasterEgg();
+    }
+  }
+
+  /**
+   * @param {boolean} victory
+   */
+  endRevenge(victory) {
+    if (this.revengeEnded) {
+      return;
+    }
+    this.revengeEnded = true;
+    this.revengeVictory = victory;
+    this.revengePaused = false;
+    this.playSound(this.soundFx.HIT);
+    vibrate(200);
+    this.stop();
+    this.crashed = true;
+
+    const elapsedMs = this.revengeRunStartedAt
+      ? getTimeStamp() - this.revengeRunStartedAt
+      : 0;
+    const stats = {
+      escapeProgress: this.escapeProgress,
+      elapsedMs,
+      bonesSpent: this.economy.bonesSpent,
+      hpLeft: this.dinoHp,
+      maxHp: REVENGE_CONFIG.MAX_HP,
+    };
+
+    if (victory) {
+      this.tRex.update(100, Trex.status.CRASHED);
+      if (this.hud) {
+        this.hud.showVictory(stats);
+      }
+    } else {
+      // Escaped — leave running pose; DOM overlay carries the message.
+      this.tRex.update(0, Trex.status.RUNNING);
+      if (this.hud) {
+        this.hud.showDefeat(stats);
+      }
+    }
+    this.syncHud();
+  }
+
+  toggleRevengePause() {
+    if (!this.revengeMode || this.revengeEnded || !this.playing) {
+      return;
+    }
+    this.revengePaused = !this.revengePaused;
+    this.time = getTimeStamp();
+    if (this.hud) {
+      this.hud.setPaused(this.revengePaused);
+    }
+    this.syncHud();
+    if (!this.revengePaused) {
+      this.update();
+    }
+  }
+
+  restartRevenge() {
+    // Cancel any leftover RAF from a prior frame schedule.
+    cancelAnimationFrame(this.raqId);
+    this.raqId = 0;
+    this.updatePending = false;
+
+    if (this.hud) {
+      this.hud.hideOverlay();
+    }
+    this.economy.reset();
+    this.economy.setWave(1);
+    this.dinoAi.reset();
+    this.dinoAi.setWave(1);
+    this.projectiles = [];
+    this.dinoHp = REVENGE_CONFIG.MAX_HP;
+    this.escapeProgress = 0;
+    this.wave = 1;
+    this.iframeTimer = 0;
+    this.hurtEscapeTimer = 0;
+    this.slowTimer = 0;
+    if (this.tRex) {
+      this.tRex.setFlashing(false);
+    }
+    this.revengeEnded = false;
+    this.revengeVictory = false;
+    this.hitObstacleIds = new WeakSet();
+    this.meteorCooldownUntil = 0;
+    this.lastGroundHazardAt = 0;
+    this.revengePaused = false;
+    this.revengeRunStartedAt = getTimeStamp();
+    this.crashed = false;
+    this.activated = false;
+    this.playingIntro = false;
+    this.paused = false;
+    this.runningTime = 0;
+    this.distanceRan = 0;
+    this.setSpeed(this.config.SPEED);
+    this.baseSpeedBeforeSlow = this.config.SPEED;
+    this.time = getTimeStamp();
+    this.containerEl.classList.remove(Runner.classes.CRASHED);
+    this.clearCanvas();
+    this.horizon.reset();
+    this.tRex.reset();
+    this.invert(true);
+    this.setPlayStatus(true);
+    // Skip CSS intro on restart so ANIM_END cannot leave the run stuck.
+    this.activated = true;
+    this.playingIntro = false;
+    this.tRex.playingIntro = false;
+    this.tRex.xPos = this.tRex.config.START_X_POS;
+    this.tRex.xInitialPos = this.tRex.xPos;
+    this.tRex.update(0, Trex.status.RUNNING);
+    this.containerEl.style.width = `${this.dimensions.WIDTH}px`;
+    this.containerEl.style.webkitAnimation = '';
+    this.startGame();
+    this.playSound(this.soundFx.BUTTON_PRESS);
+    this.syncHud();
+    this.update();
   }
 
   /**
@@ -1128,6 +1720,38 @@ export class Runner {
       e.preventDefault();
     }
 
+    // Revenge: spawn hotkeys + pause (ignore when typing in inputs).
+    if (this.revengeMode && e.type === Runner.events.KEYDOWN) {
+      const tag = (e.target && e.target.tagName) || '';
+      if (tag !== 'INPUT' && tag !== 'TEXTAREA') {
+        if (e.key === 'p' || e.key === 'P') {
+          this.toggleRevengePause();
+          return;
+        }
+        if (e.key === '1') {
+          this.handleRevengeSpawn('bush');
+          return;
+        }
+        if (e.key === '2') {
+          this.handleRevengeSpawn('ptero');
+          return;
+        }
+        if (e.key === '3') {
+          this.handleRevengeSpawn('boulder');
+          return;
+        }
+        if (e.key === '4') {
+          this.handleRevengeSpawn('meteor');
+          return;
+        }
+      }
+    }
+
+    if (this.revengeMode) {
+      // No player jump / duck / touch-to-jump in revenge mode.
+      return;
+    }
+
     if (this.isCanvasInView()) {
       // Allow toggling of speed toggle.
       if (
@@ -1198,6 +1822,21 @@ export class Runner {
    * @param {Event} e
    */
   onKeyUp(e) {
+    if (this.revengeMode) {
+      const keyCode = String(e.keyCode);
+      if (this.crashed && this.revengeEnded) {
+        const deltaTime = getTimeStamp() - this.time;
+        if (
+          Runner.keycodes.RESTART[keyCode] ||
+          (deltaTime >= this.config.GAMEOVER_CLEAR_TIME &&
+            Runner.keycodes.JUMP[keyCode])
+        ) {
+          this.restartRevenge();
+        }
+      }
+      return;
+    }
+
     const keyCode = String(e.keyCode);
     const isjumpKey =
       Runner.keycodes.JUMP[keyCode] ||
@@ -1420,6 +2059,12 @@ export class Runner {
    * Game over state.
    */
   gameOver() {
+    // Revenge mode uses DOM victory/defeat overlays instead.
+    if (this.revengeMode) {
+      this.endRevenge(this.dinoHp <= 0);
+      return;
+    }
+
     this.playSound(this.soundFx.HIT);
     vibrate(200);
 
@@ -1507,6 +2152,11 @@ export class Runner {
   }
 
   restart() {
+    if (this.revengeMode) {
+      this.restartRevenge();
+      return;
+    }
+
     if (!this.raqId) {
       this.playCount++;
       this.runningTime = 0;
@@ -1608,7 +2258,7 @@ export class Runner {
    * @param {AudioBuffer} soundBuffer
    */
   playSound(soundBuffer) {
-    if (soundBuffer) {
+    if (soundBuffer && this.audioContext) {
       const sourceNode = this.audioContext.createBufferSource();
       sourceNode.buffer = soundBuffer;
       sourceNode.connect(this.audioContext.destination);
@@ -1644,6 +2294,11 @@ export class Runner {
 
     // remove the event listeners
     this.stopListening();
+
+    if (this.hud) {
+      this.hud.destroy();
+      this.hud = null;
+    }
 
     // remove the container element
     this.containerEl.remove();

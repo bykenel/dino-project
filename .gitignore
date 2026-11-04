@@ -13,6 +13,8 @@ yarn-error.log
 dist/
 build/
 out/
+.deploy-github-io/
+dino-project.zip
 
 # IDE and editor files
 .idea/

@@ -35,6 +35,8 @@ export class Horizon {
     this.spritePos = spritePos;
     this.nightMode = null;
     this.altGameModeActive = false;
+    // When false, obstacles only come from spawnPlayerObstacle (revenge mode).
+    this.autoSpawnEnabled = true;
 
     // Cloud
     this.clouds = [];
@@ -237,6 +239,10 @@ export class Horizon {
     }
     this.obstacles = updatedObstacles;
 
+    if (!this.autoSpawnEnabled) {
+      return;
+    }
+
     if (this.obstacles.length > 0) {
       const lastObstacle = this.obstacles[this.obstacles.length - 1];
 
@@ -258,6 +264,70 @@ export class Horizon {
 
   removeFirstObstacle() {
     this.obstacles.shift();
+  }
+
+  /**
+   * Player-paid spawn for Revenge mode. Stacks freely when the player can afford it.
+   * @param {string} typeName Obstacle type key (e.g. CACTUS_SMALL).
+   * @param {number} currentSpeed
+   * @param {Object=} opts
+   * @param {number=} opts.preferredYPos
+   * @param {number=} opts.stackOffset Extra x offset when stacking onto busy track
+   * @return {Obstacle|null}
+   */
+  spawnPlayerObstacle(typeName, currentSpeed, opts) {
+    opts = opts || {};
+    const obstacleType = Obstacle.types.find(t => t.type === typeName);
+    if (!obstacleType) {
+      return null;
+    }
+
+    const obstacleSpritePos = this.spritePos[obstacleType.type];
+    if (!obstacleSpritePos) {
+      return null;
+    }
+
+    // Stack onto the right edge; nudge further right if the lane is busy.
+    let xOffset = obstacleType.width;
+    if (this.obstacles.length > 0) {
+      const last = this.obstacles[this.obstacles.length - 1];
+      const stackOffset = opts.stackOffset != null ? opts.stackOffset : 28;
+      const needed = last.xPos + last.width + stackOffset - this.dimensions.WIDTH;
+      if (needed > 0) {
+        xOffset = obstacleType.width + needed;
+      }
+    }
+
+    const obstacle = new Obstacle(
+      this.canvasCtx,
+      obstacleType,
+      obstacleSpritePos,
+      this.dimensions,
+      this.gapCoefficient,
+      currentSpeed,
+      xOffset,
+      this.altGameModeActive
+    );
+
+    // Player spawns: single unit, optional forced height for aerial threats.
+    if (obstacle.size > 1) {
+      obstacle.size = 1;
+      obstacle.width = obstacle.typeConfig.width;
+      obstacle.cloneCollisionBoxes();
+    }
+
+    if (opts.preferredYPos != null && Array.isArray(obstacleType.yPos)) {
+      obstacle.yPos = opts.preferredYPos;
+    }
+
+    // Mark so auto-spawn chaining never treats this as a seed (disabled anyway).
+    obstacle.followingObstacleCreated = true;
+    this.obstacles.push(obstacle);
+    this.obstacleHistory.unshift(obstacleType.type);
+    if (this.obstacleHistory.length > 1) {
+      this.obstacleHistory.splice(window.Runner.config.MAX_OBSTACLE_DUPLICATION);
+    }
+    return obstacle;
   }
 
   /**

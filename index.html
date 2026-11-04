@@ -1,5 +1,5 @@
-<!DOCTYPE html>
-<html lang="en">
+<!doctype html>
+<html lang="pt-BR">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -8,50 +8,30 @@
     <meta name="color-scheme" content="light dark" />
     <meta name="theme-color" content="#fff" />
 
-    <title>Trex Runner Game</title>
+    <title>Desert Revenge</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Pixelify+Sans:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
     <link rel="stylesheet" href="trex.css" />
     <link rel="stylesheet" href="custom.css" />
   </head>
   <body class="">
     <div class="container">
       <div class="header">
-        <h1>T-Rex Runner Game</h1>
-        <h4>( SPACE to Start - Press 'F' to go fullscreen )</h4>
+        <h1>Desert Revenge</h1>
+        <h4>Minere ossos, pare o dinossauro!</h4>
       </div>
 
-      <!-- Game Instance -->
-      <div class="trex-game"></div>
-
-      <!-- Advance Configs -->
-      <div class="config-box">
-        <a
-          href="https://ethindia2024.devfolio.co?dino=true"
-          class="onchain-cta"
-        >
-          <img src="extra/onchain-button.svg" alt="Play Onchain Dino Game" />
-        </a>
-
-        <h4>Developer Options</h4>
-        <div class="flex-box">
-          <div class="flex-item">
-            <label for="sprite-1x">1x Sprite:</label>
-            <input type="file" id="sprite-1x" accept="image/*" />
-          </div>
-          <div class="flex-item">
-            <label for="sprite-2x">2x Sprite:</label>
-            <input type="file" id="sprite-2x" accept="image/*" />
-          </div>
-        </div>
-
-        <div class="link-section">
-          <a href="https://github.com/devfolioco/t-rex-runner-game">
-            VIEW GITHUB REPOSITORY
-          </a>
-          <a href="https://devfolio.co/hackathons" target="_blank">
-            Apply to a hackathon on Devfolio
-          </a>
-        </div>
+      <!-- Game Instance + Revenge HUD -->
+      <div class="revenge-game-wrap">
+        <div id="revenge-hud"></div>
+        <div class="trex-game"></div>
       </div>
+
+      <p class="revenge-credit">Baseado no T-Rex Runner do Chromium</p>
     </div>
 
     <!-- Resources for the Trex Game -->
