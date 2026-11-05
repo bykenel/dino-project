@@ -5,12 +5,6 @@
   --revenge-font: 'Pixelify Sans', 'Segoe UI', Tahoma, sans-serif;
 }
 
-html,
-body {
-  height: 100%;
-  margin: 0;
-}
-
 .trex-game {
   max-width: 600px;
   width: 100%;
@@ -529,10 +523,7 @@ h6 {
   display: flex;
   align-items: center;
   flex-direction: column;
-  justify-content: center;
   gap: 32px;
-  min-height: 100vh;
-  box-sizing: border-box;
 }
 
 .header {
@@ -583,11 +574,22 @@ h6 {
 }
 
 .revenge-lang-btn {
-  padding: 6px 8px;
-  min-width: 36px;
-  line-height: 1;
-  font-size: 16px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4px 6px;
+  min-width: 40px;
+  min-height: 32px;
+  line-height: 0;
   text-transform: none;
+}
+
+.revenge-lang-btn .revenge-flag {
+  display: block;
+  width: 22px;
+  height: 16px;
+  border-radius: 2px;
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.2);
 }
 
 .revenge-ranking-btn:active,

@@ -8,11 +8,11 @@ const LOCALES = ["pt-BR", "en-US"];
 
 const STRINGS = {
   "pt-BR": {
-    subtitle: "Minere ossos, pare o dinossauro!",
-    credit: "Baseado no T-Rex Runner do Chromium",
+    subtitle: "Colete ossos e pare o dinossauro!",
+    credit: "Inspirado no T-Rex Runner do Chromium",
     ranking: "Ranking",
     rankingNote: "Melhores tempos neste navegador",
-    rankingEmpty: "Nenhum tempo salvo ainda.",
+    rankingEmpty: "Nenhum tempo registrado.",
     rankingColRank: "#",
     rankingColNick: "Nick",
     rankingColTime: "Tempo",
@@ -22,52 +22,51 @@ const STRINGS = {
     statBones: "Ossos",
     statWave: "Onda",
     statClick: "Por clique",
-    statPassive: "Passivo",
-    statHp: "Vida do Dino",
+    statPassive: "Automático",
+    statHp: "Vida do dino",
     statEscape: "Fuga",
-    clicker: "Minerar Ossos",
+    clicker: "Minerar ossos",
     clickerAria: "Minerar ossos",
-    hintWave: "Onda aumenta o ganho por clique, mas o dino fica mais esperto!",
-    hintPause: "[P] pausa",
+    hintWave: "Cada onda aumenta seus ganhos mas deixa o dino mais esperto!",
+    hintPause: "[P] pausar",
     paused: "Pausado",
     "hazard.bush": "Cacto",
     "hazard.ptero": "Pterodáctilo",
-    "hazard.boulder": "Cacto Grande",
+    "hazard.boulder": "Cacto gigante",
     "hazard.meteor": "Meteoro",
     startBlurb:
-      "Impeça o dinossauro antes que ele consiga escapar! Colete ossos, posicione obstáculos pelo caminho e dispare meteoros para vencer.",
-    start: "Iniciar",
-    restart: "Jogar Novamente",
+      "Não deixe o dinossauro escapar! Colete ossos, coloque obstáculos no caminho e lance meteoros para detê-lo.",
+    start: "Começar",
+    restart: "Jogar novamente",
     submit: "Enviar",
     endTitle: "Fim de jogo",
-    victoryTitle: "Vitória",
+    victoryTitle: "Vitória!",
     victoryLead: "O deserto não perdoa... o dinossauro foi derrotado!",
-    victoryStats:
-      "Fuga: {escape}% \nTempo: {time}s \nOssos gastos: {bones}",
+    victoryStats: "Fuga: {escape}% \nTempo: {time}s \nOssos gastos: {bones}",
     victoryRecord: "Novo recorde!",
-    victoryBestEscape: "Melhor fuga: {escape}%",
+    victoryBestEscape: "Menor fuga: {escape}%",
     victoryBestTime: "Melhor tempo: {time}s",
-    defeatTitle: "Derrota",
-    defeatClose: "Quase! O dinossauro escapou. Tente de novo!",
-    defeatFar: "O dinossauro escapou. Tente de novo!",
+    defeatTitle: "Derrota!",
+    defeatClose: "Quase lá! O dinossauro escapou. Tente de novo!",
+    defeatFar: "O dinossauro escapou! Tente novamente.",
     defeatStats: "Vida restante: {hp}/{maxHp} \nOssos gastos: {bones}",
     defeatTip:
-      "Dica: \n[3] Cacto Grande + [2] Pterodáctilo \ncausam dano extra.",
+      "Dica: \n[3] Cacto gigante + [2] Pterodáctilo \ncausam dano extra.",
     nickLabel: "Nick (3 letras)",
-    nickAria: "Nick de 3 letras",
-    scoreInvalid: "Use exatamente 3 letras (A–Z).",
-    scoreNotBetter: "Tempo não melhorou para este nick.",
-    scoreCreated: "Salvo no ranking!",
+    nickAria: "Nick com 3 letras",
+    scoreInvalid: "Digite exatamente 3 letras (A–Z).",
+    scoreNotBetter: "Seu tempo não superou o recorde deste nick.",
+    scoreCreated: "Adicionado ao ranking!",
     scoreImproved: "Novo melhor tempo!",
     combo: "Combo!",
     langAria: "Mudar para inglês",
   },
   "en-US": {
-    subtitle: "Mine bones, stop the dinosaur!",
-    credit: "Based on Chromium's T-Rex Runner",
-    ranking: "Ranking",
+    subtitle: "Collect bones and stop the dino!",
+    credit: "Inspired by Chromium's T-Rex Runner",
+    ranking: "Leaderboard",
     rankingNote: "Best times on this browser",
-    rankingEmpty: "No times saved yet.",
+    rankingEmpty: "No times recorded yet.",
     rankingColRank: "#",
     rankingColNick: "Nick",
     rankingColTime: "Time",
@@ -77,42 +76,40 @@ const STRINGS = {
     statBones: "Bones",
     statWave: "Wave",
     statClick: "Per click",
-    statPassive: "Passive",
+    statPassive: "Auto",
     statHp: "Dino HP",
     statEscape: "Escape",
-    clicker: "Mine Bones",
-    clickerAria: "Mine bones",
-    hintWave: "Wave boosts click reward, but the dino gets smarter!",
+    clicker: "Collect bones",
+    clickerAria: "Collect bones",
+    hintWave: "Each wave boosts your gains but makes the dino smarter!",
     hintPause: "[P] pause",
     paused: "Paused",
     "hazard.bush": "Cactus",
     "hazard.ptero": "Pterodactyl",
-    "hazard.boulder": "Big Cactus",
+    "hazard.boulder": "Giant Cactus",
     "hazard.meteor": "Meteor",
     startBlurb:
-      "Stop the dinosaur before it escapes! Collect bones, drop hazards on the track, and fire meteors to win.",
+      "Don't let the dinosaur escape! Collect bones, place obstacles and launch meteors to stop it.",
     start: "Start",
-    restart: "Play Again",
+    restart: "Play again",
     submit: "Submit",
     endTitle: "Game over",
-    victoryTitle: "Victory",
-    victoryLead: "The desert shows no mercy... the dinosaur is down!",
-    victoryStats:
-      "Escape: {escape}% \nTime: {time}s \nBones spent: {bones}",
+    victoryTitle: "Victory!",
+    victoryLead: "The desert shows no mercy... the dinosaur is defeated!",
+    victoryStats: "Escape: {escape}% \nTime: {time}s \nBones spent: {bones}",
     victoryRecord: "New record!",
-    victoryBestEscape: "Best escape: {escape}%",
+    victoryBestEscape: "Lowest escape: {escape}%",
     victoryBestTime: "Best time: {time}s",
-    defeatTitle: "Defeat",
-    defeatClose: "So close! The dinosaur got away. Try again!",
-    defeatFar: "The dinosaur escaped. Try again!",
+    defeatTitle: "Defeat!",
+    defeatClose: "So close! The dinosaur escaped. Try again!",
+    defeatFar: "The dinosaur escaped! Try again.",
     defeatStats: "HP left: {hp}/{maxHp} \nBones spent: {bones}",
-    defeatTip:
-      "Tip: \n[3] Big Cactus + [2] Pterodactyl \ndeal bonus damage.",
+    defeatTip: "Tip: \n[3] Giant Cactus + [2] Pterodactyl \ndeal extra damage.",
     nickLabel: "Nick (3 letters)",
     nickAria: "3-letter nick",
-    scoreInvalid: "Use exactly 3 letters (A–Z).",
-    scoreNotBetter: "Time did not improve for this nick.",
-    scoreCreated: "Saved to the ranking!",
+    scoreInvalid: "Enter exactly 3 letters (A–Z).",
+    scoreNotBetter: "Your time didn't beat this nick's record.",
+    scoreCreated: "Added to the leaderboard!",
     scoreImproved: "New best time!",
     combo: "Combo!",
     langAria: "Switch to Portuguese",
@@ -221,14 +218,29 @@ export function applyStaticI18n(root) {
   });
 }
 
+const FLAG_SVG = {
+  "en-US":
+    '<svg class="revenge-flag" viewBox="0 0 22 16" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><rect width="22" height="16" fill="#b22234"/><path d="M0 2.46h22M0 5.54h22M0 8.62h22M0 11.69h22M0 14.77h22" stroke="#fff" stroke-width="1.23"/><rect width="8.8" height="8.55" fill="#3c3b6e"/></svg>',
+  "pt-BR":
+    '<svg class="revenge-flag" viewBox="0 0 22 16" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><rect width="22" height="16" fill="#009c3b"/><path d="M11 1.6L20.2 8 11 14.4 1.8 8Z" fill="#ffdf00"/><circle cx="11" cy="8" r="3.2" fill="#002776"/></svg>',
+};
+
 /**
- * Flag emoji for the *other* locale (what clicking will switch to).
+ * Target locale for the language toggle (the other language).
+ * @param {string=} locale
+ * @return {string}
+ */
+export function toggleTargetLocale(locale) {
+  return (locale || currentLocale) === "pt-BR" ? "en-US" : "pt-BR";
+}
+
+/**
+ * Inline SVG flag for the *other* locale (what clicking will switch to).
  * @param {string=} locale
  * @return {string}
  */
 export function flagForToggle(locale) {
-  const loc = locale || currentLocale;
-  return loc === "pt-BR" ? "🇺🇸" : "🇧🇷";
+  return FLAG_SVG[toggleTargetLocale(locale)];
 }
 
 /**

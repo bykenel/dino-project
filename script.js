@@ -12,7 +12,7 @@ function syncLangButton() {
   if (!btn) {
     return;
   }
-  btn.textContent = flagForToggle();
+  btn.innerHTML = flagForToggle();
   btn.setAttribute('aria-label', langToggleAria());
 }
 
