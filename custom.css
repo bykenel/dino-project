@@ -5,6 +5,12 @@
   --revenge-font: 'Pixelify Sans', 'Segoe UI', Tahoma, sans-serif;
 }
 
+html,
+body {
+  height: 100%;
+  margin: 0;
+}
+
 .trex-game {
   max-width: 600px;
   width: 100%;
@@ -447,6 +453,7 @@
   .revenge-restart-btn,
   .revenge-pause-chip,
   .revenge-ranking-btn,
+  .revenge-lang-btn,
   .revenge-nick-input {
     border-color: rgb(160, 160, 160);
     color: rgb(200, 200, 200);
@@ -482,7 +489,8 @@
   }
 
   .revenge-restart-btn,
-  .revenge-ranking-btn {
+  .revenge-ranking-btn,
+  .revenge-lang-btn {
     background: #3a342c;
   }
 
@@ -521,7 +529,10 @@ h6 {
   display: flex;
   align-items: center;
   flex-direction: column;
+  justify-content: center;
   gap: 32px;
+  min-height: 100vh;
+  box-sizing: border-box;
 }
 
 .header {
@@ -539,6 +550,13 @@ h6 {
   margin-bottom: 16px;
 }
 
+.revenge-footer-actions {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 8px;
+}
+
 .revenge-credit {
   margin: 0;
   font-family: var(--revenge-font);
@@ -550,7 +568,8 @@ h6 {
   opacity: 0.85;
 }
 
-.revenge-ranking-btn {
+.revenge-ranking-btn,
+.revenge-lang-btn {
   font-family: var(--revenge-font);
   font-size: 12px;
   text-transform: uppercase;
@@ -563,7 +582,16 @@ h6 {
   margin: 0;
 }
 
-.revenge-ranking-btn:active {
+.revenge-lang-btn {
+  padding: 6px 8px;
+  min-width: 36px;
+  line-height: 1;
+  font-size: 16px;
+  text-transform: none;
+}
+
+.revenge-ranking-btn:active,
+.revenge-lang-btn:active {
   transform: scale(0.96);
 }
 

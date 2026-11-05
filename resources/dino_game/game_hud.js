@@ -1,7 +1,9 @@
 import { REVENGE_CONFIG } from "./revenge_config.js";
 import { listScores, submitScore } from "./scoreboard.js";
+import { applyStaticI18n, onLocaleChange, t } from "./i18n.js";
 
 const BEST_RUN_KEY = "revengeBestRun";
+const HAZARD_IDS = ["bush", "ptero", "boulder", "meteor"];
 
 /**
  * DOM HUD for Revenge of the Desert (stats, clicker, shop, end overlay).
@@ -19,6 +21,11 @@ export class GameHud {
     this.mountEl = mountEl;
     this.overlayRoot = mountEl.parentElement || mountEl;
     this.handlers = handlers;
+    this.lastVictoryStats = null;
+    this.lastEndKind = null;
+    this.lastEndStats = null;
+    this.lastScoreStatusKey = null;
+    this.unsubLocale = null;
     this.build();
   }
 
@@ -26,24 +33,24 @@ export class GameHud {
     this.mountEl.innerHTML = `
       <div class="revenge-dashboard">
         <div class="revenge-stat">
-          <span class="revenge-stat-label">Ossos</span>
+          <span class="revenge-stat-label" data-i18n="statBones">Ossos</span>
           <span class="revenge-stat-value" data-bones>0</span>
         </div>
         <div class="revenge-stat">
-          <span class="revenge-stat-label">Onda</span>
+          <span class="revenge-stat-label" data-i18n="statWave">Onda</span>
           <span class="revenge-stat-value" data-wave>1</span>
         </div>
         <div class="revenge-stat">
-          <span class="revenge-stat-label">Por clique</span>
+          <span class="revenge-stat-label" data-i18n="statClick">Por clique</span>
           <span class="revenge-stat-value" data-click-reward>+2</span>
         </div>
         <div class="revenge-stat">
-          <span class="revenge-stat-label">Passivo</span>
+          <span class="revenge-stat-label" data-i18n="statPassive">Passivo</span>
           <span class="revenge-stat-value" data-cps>2/s</span>
         </div>
         <div class="revenge-stat revenge-stat-meter">
           <div class="revenge-stat-meter-head">
-            <span class="revenge-stat-label">Vida do Dino</span>
+            <span class="revenge-stat-label" data-i18n="statHp">Vida do Dino</span>
             <span class="revenge-stat-value revenge-stat-inline" data-hp-text>100/100</span>
           </div>
           <div class="revenge-bar" aria-hidden="true">
@@ -53,7 +60,7 @@ export class GameHud {
         </div>
         <div class="revenge-stat revenge-stat-meter">
           <div class="revenge-stat-meter-head">
-            <span class="revenge-stat-label">Fuga</span>
+            <span class="revenge-stat-label" data-i18n="statEscape">Fuga</span>
             <span class="revenge-stat-value revenge-stat-inline" data-escape-text>0%</span>
           </div>
           <div class="revenge-bar" aria-hidden="true">
@@ -65,9 +72,9 @@ export class GameHud {
 
       <div class="revenge-controls">
         <div class="revenge-clicker-wrap">
-          <button type="button" class="revenge-clicker" data-clicker aria-label="Minerar ossos">
+          <button type="button" class="revenge-clicker" data-clicker data-i18n-aria="clickerAria" aria-label="Minerar ossos">
             <span class="revenge-clicker-icon" aria-hidden="true">🦴</span>
-            <span class="revenge-clicker-label">Minerar Ossos</span>
+            <span class="revenge-clicker-label" data-i18n="clicker">Minerar Ossos</span>
           </button>
           <div class="revenge-float-layer" data-float-layer></div>
         </div>
@@ -75,31 +82,31 @@ export class GameHud {
         <div class="revenge-shop">
           <button type="button" class="revenge-shop-btn" data-spawn="bush">
             <span class="revenge-shop-key">1</span>
-            <span class="revenge-shop-name">${REVENGE_CONFIG.HAZARDS.bush.label}</span>
+            <span class="revenge-shop-name" data-i18n="hazard.bush">${t("hazard.bush")}</span>
             <span class="revenge-shop-cost">${REVENGE_CONFIG.HAZARDS.bush.cost}🦴</span>
           </button>
           <button type="button" class="revenge-shop-btn" data-spawn="ptero">
             <span class="revenge-shop-key">2</span>
-            <span class="revenge-shop-name">${REVENGE_CONFIG.HAZARDS.ptero.label}</span>
+            <span class="revenge-shop-name" data-i18n="hazard.ptero">${t("hazard.ptero")}</span>
             <span class="revenge-shop-cost">${REVENGE_CONFIG.HAZARDS.ptero.cost}🦴</span>
           </button>
           <button type="button" class="revenge-shop-btn" data-spawn="boulder">
             <span class="revenge-shop-key">3</span>
-            <span class="revenge-shop-name">${REVENGE_CONFIG.HAZARDS.boulder.label}</span>
+            <span class="revenge-shop-name" data-i18n="hazard.boulder">${t("hazard.boulder")}</span>
             <span class="revenge-shop-cost">${REVENGE_CONFIG.HAZARDS.boulder.cost}🦴</span>
           </button>
           <button type="button" class="revenge-shop-btn" data-spawn="meteor">
             <span class="revenge-shop-key">4</span>
-            <span class="revenge-shop-name">${REVENGE_CONFIG.HAZARDS.meteor.label}</span>
+            <span class="revenge-shop-name" data-i18n="hazard.meteor">${t("hazard.meteor")}</span>
             <span class="revenge-shop-cost" data-meteor-cost>${REVENGE_CONFIG.HAZARDS.meteor.cost}🦴</span>
           </button>
         </div>
       </div>
       
-      <p class="revenge-hint">
+      <p class="revenge-hint" data-i18n="hintWave">
         Onda aumenta o ganho por clique, mas o dino fica mais esperto!
       </p>
-      <p class="revenge-hint">
+      <p class="revenge-hint" data-i18n="hintPause">
         [P] pausa
       </p>
     `;
@@ -112,7 +119,7 @@ export class GameHud {
       gameFx.className = "revenge-game-fx";
       gameFx.innerHTML = `
         <div class="revenge-canvas-floats" data-canvas-floats></div>
-        <div class="revenge-pause-chip hidden" data-pause-chip>Pausado</div>
+        <div class="revenge-pause-chip hidden" data-pause-chip data-i18n="paused">Pausado</div>
       `;
       gameEl.appendChild(gameFx);
       this.gameFx = gameFx;
@@ -124,10 +131,10 @@ export class GameHud {
     overlayHost.innerHTML = `
       <div class="revenge-overlay hidden" data-overlay>
         <div class="revenge-overlay-card">
-          <h2 data-overlay-title>Fim de jogo</h2>
+          <h2 data-overlay-title data-i18n="endTitle">Fim de jogo</h2>
           <p data-overlay-msg></p>
           <div class="revenge-score-form hidden" data-score-form>
-            <label class="revenge-score-label" for="revenge-nick">Nick (3 letras)</label>
+            <label class="revenge-score-label" for="revenge-nick" data-i18n="nickLabel">Nick (3 letras)</label>
             <div class="revenge-score-row">
               <input
                 id="revenge-nick"
@@ -137,40 +144,41 @@ export class GameHud {
                 maxlength="3"
                 autocomplete="off"
                 spellcheck="false"
+                data-i18n-aria="nickAria"
                 aria-label="Nick de 3 letras"
               />
-              <button type="button" class="revenge-restart-btn" data-submit-score>Enviar</button>
+              <button type="button" class="revenge-restart-btn" data-submit-score data-i18n="submit">Enviar</button>
             </div>
             <p class="revenge-score-status" data-score-status></p>
           </div>
-          <button type="button" class="revenge-restart-btn" data-restart>Jogar Novamente</button>
+          <button type="button" class="revenge-restart-btn" data-restart data-i18n="restart">Jogar Novamente</button>
         </div>
       </div>
       <div class="revenge-start-overlay" data-start-overlay>
         <div class="revenge-overlay-card">
-          <p>Impeça o dinossauro antes que ele consiga escapar! Colete ossos, posicione obstáculos pelo caminho e dispare meteoros para vencer.</p>
-          <button type="button" class="revenge-restart-btn" data-start>Iniciar</button>
+          <p data-i18n="startBlurb">Impeça o dinossauro antes que ele consiga escapar! Colete ossos, posicione obstáculos pelo caminho e dispare meteoros para vencer.</p>
+          <button type="button" class="revenge-restart-btn" data-start data-i18n="start">Iniciar</button>
         </div>
       </div>
       <div class="revenge-overlay hidden" data-ranking-overlay>
         <div class="revenge-overlay-card revenge-ranking-card">
-          <h2>Ranking</h2>
-          <p class="revenge-ranking-note">Melhores tempos neste navegador</p>
+          <h2 data-i18n="ranking">Ranking</h2>
+          <p class="revenge-ranking-note" data-i18n="rankingNote">Melhores tempos neste navegador</p>
           <div class="revenge-ranking-table-wrap">
             <table class="revenge-ranking-table">
               <thead>
                 <tr>
-                  <th>#</th>
-                  <th>Nick</th>
-                  <th>Tempo</th>
-                  <th>Fuga</th>
-                  <th>Ossos</th>
+                  <th data-i18n="rankingColRank">#</th>
+                  <th data-i18n="rankingColNick">Nick</th>
+                  <th data-i18n="rankingColTime">Tempo</th>
+                  <th data-i18n="rankingColEscape">Fuga</th>
+                  <th data-i18n="rankingColBones">Ossos</th>
                 </tr>
               </thead>
               <tbody data-ranking-body></tbody>
             </table>
           </div>
-          <button type="button" class="revenge-restart-btn" data-ranking-close>Fechar</button>
+          <button type="button" class="revenge-restart-btn" data-ranking-close data-i18n="rankingClose">Fechar</button>
         </div>
       </div>
     `;
@@ -215,14 +223,20 @@ export class GameHud {
       scoreStatus: this.overlayHost.querySelector("[data-score-status]"),
     };
 
-    this.lastVictoryStats = null;
+    applyStaticI18n(this.mountEl);
+    if (this.gameFx) {
+      applyStaticI18n(this.gameFx);
+    }
+    applyStaticI18n(this.overlayHost);
+
+    this.unsubLocale = onLocaleChange(() => this.refreshLocale());
 
     this.els.clicker.addEventListener("click", (e) => {
       e.preventDefault();
       this.handlers.onClicker();
     });
 
-    Object.keys(this.els.spawnBtns).forEach((id) => {
+    HAZARD_IDS.forEach((id) => {
       this.els.spawnBtns[id].addEventListener("click", (e) => {
         e.preventDefault();
         this.handlers.onSpawn(id);
@@ -275,6 +289,46 @@ export class GameHud {
   }
 
   /**
+   * Re-apply static + open overlay strings after locale change.
+   */
+  refreshLocale() {
+    applyStaticI18n(this.mountEl);
+    if (this.gameFx) {
+      applyStaticI18n(this.gameFx);
+    }
+    if (this.overlayHost) {
+      applyStaticI18n(this.overlayHost);
+    }
+
+    if (
+      this.lastEndKind === "victory" &&
+      this.lastEndStats &&
+      this.els.overlay &&
+      !this.els.overlay.classList.contains("hidden")
+    ) {
+      this.renderVictoryMessage(this.lastEndStats);
+    } else if (
+      this.lastEndKind === "defeat" &&
+      this.lastEndStats &&
+      this.els.overlay &&
+      !this.els.overlay.classList.contains("hidden")
+    ) {
+      this.renderDefeatMessage(this.lastEndStats);
+    }
+
+    if (this.lastScoreStatusKey && this.els.scoreStatus) {
+      this.els.scoreStatus.textContent = t(this.lastScoreStatusKey);
+    }
+
+    if (
+      this.els.rankingOverlay &&
+      !this.els.rankingOverlay.classList.contains("hidden")
+    ) {
+      this.renderRanking();
+    }
+  }
+
+  /**
    * Show floating +N near the clicker.
    * @param {number} amount
    */
@@ -313,7 +367,8 @@ export class GameHud {
     }
     if (opts.combo) {
       el.classList.add("is-combo");
-      el.textContent = typeof amount === "string" ? amount : "Combo!";
+      el.textContent =
+        typeof amount === "string" ? amount : t("combo");
     } else {
       el.textContent = `−${amount}`;
     }
@@ -383,8 +438,7 @@ export class GameHud {
       }
     }
 
-    const hazards = ["bush", "ptero", "boulder", "meteor"];
-    hazards.forEach((id) => {
+    HAZARD_IDS.forEach((id) => {
       const cfg = REVENGE_CONFIG.HAZARDS[id];
       const btn = this.els.spawnBtns[id];
       const afford = bones >= cfg.cost;
@@ -403,39 +457,68 @@ export class GameHud {
   /**
    * @param {Object} stats
    */
+  renderVictoryMessage(stats) {
+    const escapePct = Math.min(100, Math.floor(stats.escapeProgress || 0));
+    const elapsedSec = ((stats.elapsedMs || 0) / 1000).toFixed(1);
+    const bonesSpent = Math.floor(stats.bonesSpent || 0);
+    const isRecord = !!stats.isRecord;
+
+    let msg =
+      `${t("victoryLead")}` +
+      `\n\n` +
+      t("victoryStats", {
+        escape: escapePct,
+        time: elapsedSec,
+        bones: bonesSpent,
+      }) +
+      `\n`;
+    if (isRecord) {
+      msg += `\n${t("victoryRecord")}`;
+    }
+    const best = this.readBestRun();
+    if (best) {
+      if (Number.isFinite(best.escapePct)) {
+        msg += `\n${t("victoryBestEscape", { escape: best.escapePct })}`;
+      }
+      if (Number.isFinite(best.elapsedMs) && best.elapsedMs > 0) {
+        msg += `\n${t("victoryBestTime", {
+          time: (best.elapsedMs / 1000).toFixed(1),
+        })}`;
+      }
+    }
+
+    this.els.overlayTitle.removeAttribute("data-i18n");
+    this.els.overlayTitle.textContent = t("victoryTitle");
+    this.els.overlayMsg.textContent = msg;
+  }
+
+  /**
+   * @param {Object} stats
+   */
   showVictory(stats) {
     stats = stats || {};
     const escapePct = Math.min(100, Math.floor(stats.escapeProgress || 0));
-    const elapsedSec = ((stats.elapsedMs || 0) / 1000).toFixed(1);
     const bonesSpent = Math.floor(stats.bonesSpent || 0);
     const record = this.updateBestRun({
       escapePct,
       elapsedMs: stats.elapsedMs || 0,
     });
 
-    let msg =
-      `O deserto não perdoa... o dinossauro foi derrotado!` +
-      `\n\nFuga: ${escapePct}% \nTempo: ${elapsedSec}s \nOssos gastos: ${bonesSpent}\n`;
-    if (record) {
-      msg += `\nNovo recorde!`;
-    }
-    const best = this.readBestRun();
-    if (best) {
-      if (Number.isFinite(best.escapePct)) {
-        msg += `\nMelhor fuga: ${best.escapePct}%`;
-      }
-      if (Number.isFinite(best.elapsedMs) && best.elapsedMs > 0) {
-        msg += `\nMelhor tempo: ${(best.elapsedMs / 1000).toFixed(1)}s`;
-      }
-    }
-
+    const endStats = {
+      escapeProgress: escapePct,
+      elapsedMs: stats.elapsedMs || 0,
+      bonesSpent,
+      isRecord: record,
+    };
+    this.lastEndKind = "victory";
+    this.lastEndStats = endStats;
     this.lastVictoryStats = {
       escapePct,
       elapsedMs: stats.elapsedMs || 0,
       bonesSpent,
     };
-    this.els.overlayTitle.textContent = "Vitória";
-    this.els.overlayMsg.textContent = msg;
+    this.lastScoreStatusKey = null;
+    this.renderVictoryMessage(endStats);
     this.resetScoreForm();
     this.els.scoreForm.classList.remove("hidden");
     this.els.overlay.classList.remove("hidden");
@@ -444,22 +527,35 @@ export class GameHud {
   /**
    * @param {Object} stats
    */
-  showDefeat(stats) {
-    stats = stats || {};
+  renderDefeatMessage(stats) {
     const hpLeft = Math.max(0, Math.ceil(stats.hpLeft || 0));
     const maxHp = stats.maxHp || REVENGE_CONFIG.MAX_HP;
     const bonesSpent = Math.floor(stats.bonesSpent || 0);
     const quase = maxHp > 0 && hpLeft / maxHp <= 0.4;
 
-    let msg = quase
-      ? "Quase! O dinossauro escapou. Tente de novo!"
-      : "O dinossauro escapou. Tente de novo!";
-    msg += `\n\nVida restante: ${hpLeft}/${maxHp} \nOssos gastos: ${bonesSpent}`;
-    msg += `\n\nDica: \n[3] Cacto Grande + [2] Pterodáctilo \ncausam dano extra.`;
+    let msg = quase ? t("defeatClose") : t("defeatFar");
+    msg += `\n\n${t("defeatStats", { hp: hpLeft, maxHp, bones: bonesSpent })}`;
+    msg += `\n\n${t("defeatTip")}`;
 
-    this.lastVictoryStats = null;
-    this.els.overlayTitle.textContent = "Derrota";
+    this.els.overlayTitle.removeAttribute("data-i18n");
+    this.els.overlayTitle.textContent = t("defeatTitle");
     this.els.overlayMsg.textContent = msg;
+  }
+
+  /**
+   * @param {Object} stats
+   */
+  showDefeat(stats) {
+    stats = stats || {};
+    this.lastEndKind = "defeat";
+    this.lastEndStats = {
+      hpLeft: stats.hpLeft || 0,
+      maxHp: stats.maxHp || REVENGE_CONFIG.MAX_HP,
+      bonesSpent: stats.bonesSpent || 0,
+    };
+    this.lastVictoryStats = null;
+    this.lastScoreStatusKey = null;
+    this.renderDefeatMessage(this.lastEndStats);
     this.els.scoreForm.classList.add("hidden");
     this.els.overlay.classList.remove("hidden");
   }
@@ -472,6 +568,7 @@ export class GameHud {
     this.els.nickInput.disabled = false;
     this.els.submitScore.disabled = false;
     this.els.scoreStatus.textContent = "";
+    this.lastScoreStatusKey = null;
   }
 
   handleScoreSubmit() {
@@ -485,17 +582,21 @@ export class GameHud {
       bonesSpent: this.lastVictoryStats.bonesSpent,
     });
     if (result.reason === "invalid") {
-      this.els.scoreStatus.textContent = "Use exatamente 3 letras (A–Z).";
+      this.lastScoreStatusKey = "scoreInvalid";
+      this.els.scoreStatus.textContent = t("scoreInvalid");
       return;
     }
     if (result.reason === "not_better") {
-      this.els.scoreStatus.textContent = "Tempo não melhorou para este nick.";
+      this.lastScoreStatusKey = "scoreNotBetter";
+      this.els.scoreStatus.textContent = t("scoreNotBetter");
       return;
     }
     if (result.reason === "created") {
-      this.els.scoreStatus.textContent = "Salvo no ranking!";
+      this.lastScoreStatusKey = "scoreCreated";
+      this.els.scoreStatus.textContent = t("scoreCreated");
     } else if (result.reason === "improved") {
-      this.els.scoreStatus.textContent = "Novo melhor tempo!";
+      this.lastScoreStatusKey = "scoreImproved";
+      this.els.scoreStatus.textContent = t("scoreImproved");
     }
     this.els.nickInput.disabled = true;
     this.els.submitScore.disabled = true;
@@ -513,8 +614,9 @@ export class GameHud {
   renderRanking() {
     const rows = listScores();
     if (!rows.length) {
-      this.els.rankingBody.innerHTML =
-        '<tr><td colspan="5">Nenhum tempo salvo ainda.</td></tr>';
+      this.els.rankingBody.innerHTML = `<tr><td colspan="5">${t(
+        "rankingEmpty"
+      )}</td></tr>`;
       return;
     }
     this.els.rankingBody.innerHTML = rows
@@ -574,6 +676,8 @@ export class GameHud {
   hideOverlay() {
     this.els.overlay.classList.add("hidden");
     this.els.scoreForm.classList.add("hidden");
+    this.lastEndKind = null;
+    this.lastEndStats = null;
     this.closeRanking();
   }
 
@@ -586,6 +690,10 @@ export class GameHud {
   }
 
   destroy() {
+    if (this.unsubLocale) {
+      this.unsubLocale();
+      this.unsubLocale = null;
+    }
     this.mountEl.innerHTML = "";
     if (this.overlayHost) {
       this.overlayHost.remove();

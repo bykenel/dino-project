@@ -18,6 +18,7 @@ const OURS = new Set([
   'custom.css',
   'resources/dino_game/revenge_config.js',
   'resources/dino_game/game_hud.js',
+  'resources/dino_game/i18n.js',
   'resources/dino_game/dino_ai.js',
   'resources/dino_game/economy.js',
   'resources/dino_game/projectile.js',

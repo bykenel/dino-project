@@ -22,7 +22,7 @@
     <div class="container">
       <div class="header">
         <h1>Desert Revenge</h1>
-        <h4>Minere ossos, pare o dinossauro!</h4>
+        <h4 data-i18n="subtitle">Minere ossos, pare o dinossauro!</h4>
       </div>
 
       <!-- Game Instance + Revenge HUD -->
@@ -32,10 +32,28 @@
       </div>
 
       <div class="revenge-footer">
-        <button type="button" class="revenge-ranking-btn" data-ranking>
-          Ranking
-        </button>
-        <p class="revenge-credit">Baseado no T-Rex Runner do Chromium</p>
+        <div class="revenge-footer-actions">
+          <button
+            type="button"
+            class="revenge-ranking-btn"
+            data-ranking
+            data-i18n="ranking"
+          >
+            Ranking
+          </button>
+          <button
+            type="button"
+            class="revenge-lang-btn"
+            data-lang-toggle
+            data-i18n-aria="langAria"
+            aria-label="Mudar para inglês"
+          >
+            🇺🇸
+          </button>
+        </div>
+        <p class="revenge-credit" data-i18n="credit">
+          Baseado no T-Rex Runner do Chromium
+        </p>
       </div>
     </div>
 

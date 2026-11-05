@@ -1376,7 +1376,7 @@ export class Runner {
     ) {
       spawned.comboBonus = REVENGE_CONFIG.COMBO_BONUS_DAMAGE;
       if (this.hud) {
-        this.hud.showDamageFloat('Combo!', { combo: true });
+        this.hud.showDamageFloat(null, { combo: true });
       }
       this.lastGroundHazardAt = 0;
     } else if (hazardId === 'bush') {
