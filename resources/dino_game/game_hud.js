@@ -1,4 +1,5 @@
 import { REVENGE_CONFIG } from "./revenge_config.js";
+import { listScores, submitScore } from "./scoreboard.js";
 
 const BEST_RUN_KEY = "revengeBestRun";
 
@@ -125,6 +126,23 @@ export class GameHud {
         <div class="revenge-overlay-card">
           <h2 data-overlay-title>Fim de jogo</h2>
           <p data-overlay-msg></p>
+          <div class="revenge-score-form hidden" data-score-form>
+            <label class="revenge-score-label" for="revenge-nick">Nick (3 letras)</label>
+            <div class="revenge-score-row">
+              <input
+                id="revenge-nick"
+                class="revenge-nick-input"
+                data-nick
+                type="text"
+                maxlength="3"
+                autocomplete="off"
+                spellcheck="false"
+                aria-label="Nick de 3 letras"
+              />
+              <button type="button" class="revenge-restart-btn" data-submit-score>Enviar</button>
+            </div>
+            <p class="revenge-score-status" data-score-status></p>
+          </div>
           <button type="button" class="revenge-restart-btn" data-restart>Jogar Novamente</button>
         </div>
       </div>
@@ -132,6 +150,27 @@ export class GameHud {
         <div class="revenge-overlay-card">
           <p>Impeça o dinossauro antes que ele consiga escapar! Colete ossos, posicione obstáculos pelo caminho e dispare meteoros para vencer.</p>
           <button type="button" class="revenge-restart-btn" data-start>Iniciar</button>
+        </div>
+      </div>
+      <div class="revenge-overlay hidden" data-ranking-overlay>
+        <div class="revenge-overlay-card revenge-ranking-card">
+          <h2>Ranking</h2>
+          <p class="revenge-ranking-note">Melhores tempos neste navegador</p>
+          <div class="revenge-ranking-table-wrap">
+            <table class="revenge-ranking-table">
+              <thead>
+                <tr>
+                  <th>#</th>
+                  <th>Nick</th>
+                  <th>Tempo</th>
+                  <th>Fuga</th>
+                  <th>Ossos</th>
+                </tr>
+              </thead>
+              <tbody data-ranking-body></tbody>
+            </table>
+          </div>
+          <button type="button" class="revenge-restart-btn" data-ranking-close>Fechar</button>
         </div>
       </div>
     `;
@@ -166,7 +205,17 @@ export class GameHud {
       meteorCost: this.mountEl.querySelector("[data-meteor-cost]"),
       restart: this.overlayHost.querySelector("[data-restart]"),
       start: this.overlayHost.querySelector("[data-start]"),
+      rankingBtn: document.querySelector("[data-ranking]"),
+      rankingOverlay: this.overlayHost.querySelector("[data-ranking-overlay]"),
+      rankingBody: this.overlayHost.querySelector("[data-ranking-body]"),
+      rankingClose: this.overlayHost.querySelector("[data-ranking-close]"),
+      scoreForm: this.overlayHost.querySelector("[data-score-form]"),
+      nickInput: this.overlayHost.querySelector("[data-nick]"),
+      submitScore: this.overlayHost.querySelector("[data-submit-score]"),
+      scoreStatus: this.overlayHost.querySelector("[data-score-status]"),
     };
+
+    this.lastVictoryStats = null;
 
     this.els.clicker.addEventListener("click", (e) => {
       e.preventDefault();
@@ -190,6 +239,39 @@ export class GameHud {
       this.hideStart();
       this.handlers.onStart();
     });
+
+    if (this.els.rankingBtn) {
+      this.els.rankingBtn.addEventListener("click", (e) => {
+        e.preventDefault();
+        this.openRanking();
+      });
+    }
+    if (this.els.rankingClose) {
+      this.els.rankingClose.addEventListener("click", (e) => {
+        e.preventDefault();
+        this.closeRanking();
+      });
+    }
+    if (this.els.submitScore) {
+      this.els.submitScore.addEventListener("click", (e) => {
+        e.preventDefault();
+        this.handleScoreSubmit();
+      });
+    }
+    if (this.els.nickInput) {
+      this.els.nickInput.addEventListener("input", () => {
+        this.els.nickInput.value = this.els.nickInput.value
+          .toUpperCase()
+          .replace(/[^A-Z]/g, "")
+          .slice(0, 3);
+      });
+      this.els.nickInput.addEventListener("keydown", (e) => {
+        if (e.key === "Enter") {
+          e.preventDefault();
+          this.handleScoreSubmit();
+        }
+      });
+    }
   }
 
   /**
@@ -333,22 +415,29 @@ export class GameHud {
 
     let msg =
       `O deserto não perdoa... o dinossauro foi derrotado!` +
-      `\n\nFuga: ${escapePct}% \nTempo: ${elapsedSec}s \nOssos gastos: ${bonesSpent}`;
+      `\n\nFuga: ${escapePct}% \nTempo: ${elapsedSec}s \nOssos gastos: ${bonesSpent}\n`;
     if (record) {
-      msg += `\n\nNovo recorde!`;
+      msg += `\nNovo recorde!`;
     }
     const best = this.readBestRun();
     if (best) {
       if (Number.isFinite(best.escapePct)) {
-        msg += `\n\nMelhor fuga: ${best.escapePct}%`;
+        msg += `\nMelhor fuga: ${best.escapePct}%`;
       }
       if (Number.isFinite(best.elapsedMs) && best.elapsedMs > 0) {
         msg += `\nMelhor tempo: ${(best.elapsedMs / 1000).toFixed(1)}s`;
       }
     }
 
+    this.lastVictoryStats = {
+      escapePct,
+      elapsedMs: stats.elapsedMs || 0,
+      bonesSpent,
+    };
     this.els.overlayTitle.textContent = "Vitória";
     this.els.overlayMsg.textContent = msg;
+    this.resetScoreForm();
+    this.els.scoreForm.classList.remove("hidden");
     this.els.overlay.classList.remove("hidden");
   }
 
@@ -368,9 +457,78 @@ export class GameHud {
     msg += `\n\nVida restante: ${hpLeft}/${maxHp} \nOssos gastos: ${bonesSpent}`;
     msg += `\n\nDica: \n[3] Cacto Grande + [2] Pterodáctilo \ncausam dano extra.`;
 
+    this.lastVictoryStats = null;
     this.els.overlayTitle.textContent = "Derrota";
     this.els.overlayMsg.textContent = msg;
+    this.els.scoreForm.classList.add("hidden");
     this.els.overlay.classList.remove("hidden");
+  }
+
+  resetScoreForm() {
+    if (!this.els.scoreForm) {
+      return;
+    }
+    this.els.nickInput.value = "";
+    this.els.nickInput.disabled = false;
+    this.els.submitScore.disabled = false;
+    this.els.scoreStatus.textContent = "";
+  }
+
+  handleScoreSubmit() {
+    if (!this.lastVictoryStats) {
+      return;
+    }
+    const result = submitScore({
+      nick: this.els.nickInput.value,
+      escapePct: this.lastVictoryStats.escapePct,
+      elapsedMs: this.lastVictoryStats.elapsedMs,
+      bonesSpent: this.lastVictoryStats.bonesSpent,
+    });
+    if (result.reason === "invalid") {
+      this.els.scoreStatus.textContent = "Use exatamente 3 letras (A–Z).";
+      return;
+    }
+    if (result.reason === "not_better") {
+      this.els.scoreStatus.textContent = "Tempo não melhorou para este nick.";
+      return;
+    }
+    if (result.reason === "created") {
+      this.els.scoreStatus.textContent = "Salvo no ranking!";
+    } else if (result.reason === "improved") {
+      this.els.scoreStatus.textContent = "Novo melhor tempo!";
+    }
+    this.els.nickInput.disabled = true;
+    this.els.submitScore.disabled = true;
+  }
+
+  openRanking() {
+    this.renderRanking();
+    this.els.rankingOverlay.classList.remove("hidden");
+  }
+
+  closeRanking() {
+    this.els.rankingOverlay.classList.add("hidden");
+  }
+
+  renderRanking() {
+    const rows = listScores();
+    if (!rows.length) {
+      this.els.rankingBody.innerHTML =
+        '<tr><td colspan="5">Nenhum tempo salvo ainda.</td></tr>';
+      return;
+    }
+    this.els.rankingBody.innerHTML = rows
+      .map((row, i) => {
+        const time = ((row.elapsedMs || 0) / 1000).toFixed(1);
+        return `<tr>
+          <td>${i + 1}</td>
+          <td>${row.nick}</td>
+          <td>${time}s</td>
+          <td>${row.escapePct}%</td>
+          <td>${row.bonesSpent}</td>
+        </tr>`;
+      })
+      .join("");
   }
 
   readBestRun() {
@@ -415,6 +573,8 @@ export class GameHud {
 
   hideOverlay() {
     this.els.overlay.classList.add("hidden");
+    this.els.scoreForm.classList.add("hidden");
+    this.closeRanking();
   }
 
   hideStart() {

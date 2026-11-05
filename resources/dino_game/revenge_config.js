@@ -2,16 +2,16 @@
  * Revenge of the Desert — shared gameplay constants.
  */
 export const REVENGE_CONFIG = {
-  STARTING_BONES: 80,
+  STARTING_BONES: 65,
   CLICK_REWARD: 2,
   CLICK_PER_WAVE: 2,
   BASE_CPS: 2,
 
-  MAX_HP: 300,
-  IFRAME_MS: 500,
+  MAX_HP: 350,
+  IFRAME_MS: 600,
   HURT_ESCAPE_PAUSE_MS: 300,
 
-  ESCAPE_FILL_PER_SECOND_AT_BASE_SPEED: 0.9,
+  ESCAPE_FILL_PER_SECOND_AT_BASE_SPEED: 1.05,
   ESCAPE_WAVE_BONUS: 0.08,
   WAVE_ESCAPE_STEP: 20,
 
@@ -26,8 +26,8 @@ export const REVENGE_CONFIG = {
 
   PTERO_DUCK_LOCK_MS: 600,
   // Mid ptero connect rate ≈ this (ducks are reliable when attempted).
-  PTERO_MISS_CHANCE: 0.55,
-  PTERO_MISS_FLOOR: 0.45,
+  PTERO_MISS_CHANCE: 0.4,
+  PTERO_MISS_FLOOR: 0.3,
   COMBO_WINDOW_MS: 1500,
   COMBO_BONUS_DAMAGE: 10,
 
@@ -63,8 +63,8 @@ export const REVENGE_CONFIG = {
     meteor: {
       id: "meteor",
       label: "Meteoro",
+      cost: 140,
       hotkey: "4",
-      cost: 120,
       damage: 30,
     },
   },

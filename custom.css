@@ -436,7 +436,6 @@
   }
 
   .revenge-bar {
-    /* Keep a light grey rail on dark UI so empty progress reads clearly. */
     background-color: #bdbdbd;
     border-color: #e0e0e0;
     box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.65);
@@ -446,7 +445,9 @@
   .revenge-shop-btn,
   .revenge-overlay-card,
   .revenge-restart-btn,
-  .revenge-pause-chip {
+  .revenge-pause-chip,
+  .revenge-ranking-btn,
+  .revenge-nick-input {
     border-color: rgb(160, 160, 160);
     color: rgb(200, 200, 200);
   }
@@ -480,8 +481,13 @@
     background: #222;
   }
 
-  .revenge-restart-btn {
+  .revenge-restart-btn,
+  .revenge-ranking-btn {
     background: #3a342c;
+  }
+
+  .revenge-credit {
+    color: rgb(140, 140, 140);
   }
 }
 
@@ -525,8 +531,16 @@ h6 {
   align-items: center;
 }
 
+.revenge-footer {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 16px;
+}
+
 .revenge-credit {
-  margin: 8px 0 24px;
+  margin: 0;
   font-family: var(--revenge-font);
   font-size: 12px;
   text-transform: uppercase;
@@ -536,9 +550,103 @@ h6 {
   opacity: 0.85;
 }
 
-@media (prefers-color-scheme: dark) {
-  .revenge-credit {
-    color: rgb(140, 140, 140);
-  }
+.revenge-ranking-btn {
+  font-family: var(--revenge-font);
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  border: 2px solid #535353;
+  background: #f7f7f7;
+  color: #535353;
+  padding: 6px 12px;
+  cursor: pointer;
+  margin: 0;
+}
+
+.revenge-ranking-btn:active {
+  transform: scale(0.96);
+}
+
+.revenge-score-form {
+  width: 100%;
+  margin: 12px 0 8px;
+}
+
+.revenge-score-form.hidden {
+  display: none;
+}
+
+.revenge-score-label {
+  display: block;
+  font-family: var(--revenge-font);
+  font-size: 12px;
+  text-transform: uppercase;
+  margin-bottom: 6px;
+}
+
+.revenge-score-row {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  justify-content: center;
+}
+
+.revenge-nick-input {
+  width: 4.5rem;
+  font-family: var(--revenge-font);
+  font-size: 1.1rem;
+  text-align: center;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  border: 2px solid #535353;
+  background: #fff;
+  color: #535353;
+  padding: 6px 4px;
+}
+
+.revenge-score-status {
+  min-height: 1.2em;
+  margin: 8px 0 0;
+  font-size: 12px;
+  text-transform: uppercase;
+}
+
+.revenge-ranking-card {
+  max-width: min(520px, 94vw);
+}
+
+.revenge-ranking-note {
+  margin: 0 0 12px;
+  font-size: 12px;
+  text-transform: uppercase;
+  opacity: 0.8;
+}
+
+.revenge-ranking-table-wrap {
+  max-height: 240px;
+  overflow: auto;
+  margin-bottom: 14px;
+  width: 100%;
+}
+
+.revenge-ranking-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-family: var(--revenge-font);
+  font-size: 13px;
+  text-transform: uppercase;
+}
+
+.revenge-ranking-table th,
+.revenge-ranking-table td {
+  border-bottom: 1px solid rgba(120, 120, 120, 0.35);
+  padding: 6px 8px;
+  text-align: left;
+}
+
+.revenge-ranking-table th {
+  position: sticky;
+  top: 0;
+  background: inherit;
 }
 

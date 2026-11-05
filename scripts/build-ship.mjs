@@ -21,6 +21,7 @@ const OURS = new Set([
   'resources/dino_game/dino_ai.js',
   'resources/dino_game/economy.js',
   'resources/dino_game/projectile.js',
+  'resources/dino_game/scoreboard.js',
 ]);
 
 /** Runtime paths to copy (relative to ROOT). */
