@@ -35,7 +35,7 @@ export class Horizon {
     this.spritePos = spritePos;
     this.nightMode = null;
     this.altGameModeActive = false;
-    // When false, obstacles only come from spawnPlayerObstacle (revenge mode).
+    
     this.autoSpawnEnabled = true;
 
     // Cloud
@@ -266,15 +266,8 @@ export class Horizon {
     this.obstacles.shift();
   }
 
-  /**
-   * Player-paid spawn for Revenge mode. Stacks freely when the player can afford it.
-   * @param {string} typeName Obstacle type key (e.g. CACTUS_SMALL).
-   * @param {number} currentSpeed
-   * @param {Object=} opts
-   * @param {number=} opts.preferredYPos
-   * @param {number=} opts.stackOffset Extra x offset when stacking onto busy track
-   * @return {Obstacle|null}
-   */
+  
+
   spawnPlayerObstacle(typeName, currentSpeed, opts) {
     opts = opts || {};
     const obstacleType = Obstacle.types.find(t => t.type === typeName);

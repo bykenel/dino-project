@@ -1,9 +1,7 @@
 const SCOREBOARD_KEY = 'revengeScoreboard';
 
-/**
- * @param {string} raw
- * @return {string|null} 3-letter A–Z nick or null
- */
+
+
 export function normalizeNick(raw) {
   const nick = String(raw || '')
     .toUpperCase()
@@ -26,15 +24,12 @@ function writeAll(list) {
   try {
     localStorage.setItem(SCOREBOARD_KEY, JSON.stringify(list));
   } catch (e) {
-    /* ignore */
+    
   }
 }
 
-/**
- * Sort: lower time, then lower escape%, then lower bones.
- * @param {Array<Object>} list
- * @return {Array<Object>}
- */
+
+
 export function sortScores(list) {
   return list.slice().sort((a, b) => {
     const t = (a.elapsedMs || 0) - (b.elapsedMs || 0);
@@ -45,16 +40,13 @@ export function sortScores(list) {
   });
 }
 
-/** @return {Array<Object>} */
+
 export function listScores() {
   return sortScores(readAll());
 }
 
-/**
- * Insert nick or update only when time improves.
- * @param {Object} entry
- * @return {{ok: boolean, reason: string}}
- */
+
+
 export function submitScore(entry) {
   const nick = normalizeNick(entry && entry.nick);
   if (!nick) {

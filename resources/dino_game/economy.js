@@ -1,9 +1,7 @@
 import { REVENGE_CONFIG } from './revenge_config.js';
 
-/**
- * Clicker currency + wave-scaled click reward for Revenge of the Desert.
- * Passive CPS stays fixed at BASE_CPS.
- */
+
+
 export class Economy {
   constructor() {
     this.reset();
@@ -17,11 +15,8 @@ export class Economy {
     this.setWave(1);
   }
 
-  /**
-   * Scale click mining with wave; passive CPS unchanged.
-   * clickReward = CLICK_REWARD + (wave - 1) * CLICK_PER_WAVE
-   * @param {number} wave
-   */
+  
+
   setWave(wave) {
     this.clickReward =
       REVENGE_CONFIG.CLICK_REWARD +
@@ -41,20 +36,16 @@ export class Economy {
     return true;
   }
 
-  /**
-   * Manual clicker reward (wave-scaled).
-   * @return {number} Amount granted.
-   */
+  
+
   click() {
     const reward = this.clickReward;
     this.bones += reward;
     return reward;
   }
 
-  /**
-   * Passive income tick (fixed BASE_CPS).
-   * @param {number} deltaTime ms
-   */
+  
+
   tick(deltaTime) {
     this.passiveAccumulator += (this.cps * deltaTime) / 1000;
     if (this.passiveAccumulator >= 1) {

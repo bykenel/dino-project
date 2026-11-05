@@ -1,14 +1,10 @@
 import { CollisionBox } from './offline-sprite-definitions.js';
 
-/**
- * Canvas-drawn meteor / cursor strike projectile.
- */
+
+
 export class Projectile {
-  /**
-   * @param {number} targetX canvas x
-   * @param {number} targetY canvas y
-   * @param {number} damage
-   */
+  
+
   constructor(targetX, targetY, damage) {
     this.targetX = targetX;
     this.targetY = targetY;
@@ -16,22 +12,21 @@ export class Projectile {
     this.x = targetX;
     this.y = -20;
     this.radius = 10;
-    this.speed = 0.55; // px per ms
+    this.speed = 0.55; 
     this.remove = false;
-    /** Reached impact point / showing FX (not the same as damage dealt). */
+    
     this.arrived = false;
-    /** Damage already applied once. */
+    
     this.damageApplied = false;
     this.impactTimer = 0;
   }
 
-  /**
-   * @param {number} deltaTime
-   */
+  
+
   update(deltaTime) {
     if (this.arrived) {
       this.impactTimer += deltaTime;
-      // Wait briefly for damage if iframes blocked the first frame; then despawn.
+      
       if (this.damageApplied && this.impactTimer > 200) {
         this.remove = true;
       } else if (!this.damageApplied && this.impactTimer > 1000) {
@@ -47,9 +42,8 @@ export class Projectile {
     }
   }
 
-  /**
-   * @param {CanvasRenderingContext2D} ctx
-   */
+  
+
   draw(ctx) {
     ctx.save();
     if (this.arrived) {
@@ -58,7 +52,7 @@ export class Projectile {
       ctx.arc(this.x, this.y, this.radius + 6, 0, Math.PI * 2);
       ctx.fill();
     } else {
-      // Trail
+      
       const grad = ctx.createLinearGradient(this.x, this.y - 28, this.x, this.y);
       grad.addColorStop(0, 'rgba(255, 180, 60, 0)');
       grad.addColorStop(1, 'rgba(255, 90, 20, 0.85)');
@@ -77,10 +71,8 @@ export class Projectile {
     ctx.restore();
   }
 
-  /**
-   * Axis-aligned box for collision vs Trex.
-   * @return {!CollisionBox}
-   */
+  
+
   getCollisionBox() {
     return new CollisionBox(
       this.x - this.radius,
@@ -91,12 +83,8 @@ export class Projectile {
   }
 }
 
-/**
- * Simple AABB overlap used for meteor vs dino.
- * @param {!CollisionBox} a
- * @param {!CollisionBox} b
- * @return {boolean}
- */
+
+
 export function boxesOverlap(a, b) {
   return (
     a.x < b.x + b.width &&

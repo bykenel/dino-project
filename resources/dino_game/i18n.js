@@ -1,6 +1,5 @@
-/**
- * Desert Revenge — pt-BR / en-US UI strings.
- */
+
+
 
 const LOCALE_KEY = "revengeLocale";
 const DEFAULT_LOCALE = "pt-BR";
@@ -35,7 +34,7 @@ const STRINGS = {
     "hazard.boulder": "Cacto gigante",
     "hazard.meteor": "Meteoro",
     startBlurb:
-      "Não deixe o dinossauro escapar! Colete ossos, coloque obstáculos no caminho e lance meteoros para detê-lo.",
+      "Não deixe o dinossauro escapar! Colete ossos, coloque obstáculos e lance meteoros para detê-lo.",
     start: "Começar",
     restart: "Jogar novamente",
     submit: "Enviar",
@@ -64,7 +63,7 @@ const STRINGS = {
   "en-US": {
     subtitle: "Collect bones and stop the dino!",
     credit: "Inspired by Chromium's T-Rex Runner",
-    ranking: "Leaderboard",
+    ranking: "Ranking",
     rankingNote: "Best times on this browser",
     rankingEmpty: "No times recorded yet.",
     rankingColRank: "#",
@@ -109,7 +108,7 @@ const STRINGS = {
     nickAria: "3-letter nick",
     scoreInvalid: "Enter exactly 3 letters (A–Z).",
     scoreNotBetter: "Your time didn't beat this nick's record.",
-    scoreCreated: "Added to the leaderboard!",
+    scoreCreated: "Added to the ranking!",
     scoreImproved: "New best time!",
     combo: "Combo!",
     langAria: "Switch to Portuguese",
@@ -135,7 +134,7 @@ function writeStoredLocale(locale) {
   try {
     localStorage.setItem(LOCALE_KEY, locale);
   } catch (e) {
-    /* ignore */
+    
   }
 }
 
@@ -145,11 +144,8 @@ function applyHtmlLang(locale) {
   }
 }
 
-/**
- * @param {string} key
- * @param {Object=} vars
- * @return {string}
- */
+
+
 export function t(key, vars) {
   const dict = STRINGS[currentLocale] || STRINGS[DEFAULT_LOCALE];
   let text = dict[key];
@@ -168,9 +164,8 @@ export function getLocale() {
   return currentLocale;
 }
 
-/**
- * @param {string} locale
- */
+
+
 export function setLocale(locale) {
   const next = normalizeLocale(locale);
   if (next === currentLocale) {
@@ -184,24 +179,20 @@ export function setLocale(locale) {
     try {
       fn(next);
     } catch (e) {
-      /* ignore */
+      
     }
   });
 }
 
-/**
- * @param {function(string): void} fn
- * @return {function(): void} unsubscribe
- */
+
+
 export function onLocaleChange(fn) {
   listeners.add(fn);
   return () => listeners.delete(fn);
 }
 
-/**
- * Apply translations to elements with data-i18n / data-i18n-aria.
- * @param {ParentNode=} root
- */
+
+
 export function applyStaticI18n(root) {
   const scope = root || document;
   scope.querySelectorAll("[data-i18n]").forEach((el) => {
@@ -225,29 +216,20 @@ const FLAG_SVG = {
     '<svg class="revenge-flag" viewBox="0 0 22 16" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><rect width="22" height="16" fill="#009c3b"/><path d="M11 1.6L20.2 8 11 14.4 1.8 8Z" fill="#ffdf00"/><circle cx="11" cy="8" r="3.2" fill="#002776"/></svg>',
 };
 
-/**
- * Target locale for the language toggle (the other language).
- * @param {string=} locale
- * @return {string}
- */
+
+
 export function toggleTargetLocale(locale) {
   return (locale || currentLocale) === "pt-BR" ? "en-US" : "pt-BR";
 }
 
-/**
- * Inline SVG flag for the *other* locale (what clicking will switch to).
- * @param {string=} locale
- * @return {string}
- */
+
+
 export function flagForToggle(locale) {
   return FLAG_SVG[toggleTargetLocale(locale)];
 }
 
-/**
- * Aria label for the language toggle (describes the target language).
- * @param {string=} locale
- * @return {string}
- */
+
+
 export function langToggleAria(locale) {
   const loc = locale || currentLocale;
   return loc === "pt-BR"
@@ -255,16 +237,14 @@ export function langToggleAria(locale) {
     : STRINGS["en-US"].langAria;
 }
 
-/**
- * Toggle between pt-BR and en-US.
- * @return {string} new locale
- */
+
+
 export function toggleLocale() {
   const next = currentLocale === "pt-BR" ? "en-US" : "pt-BR";
   setLocale(next);
   return next;
 }
 
-/** Init from localStorage on first import. */
+
 currentLocale = readStoredLocale();
 applyHtmlLang(currentLocale);

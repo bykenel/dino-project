@@ -5,18 +5,11 @@ import { applyStaticI18n, onLocaleChange, t } from "./i18n.js";
 const BEST_RUN_KEY = "revengeBestRun";
 const HAZARD_IDS = ["bush", "ptero", "boulder", "meteor"];
 
-/**
- * DOM HUD for Revenge of the Desert (stats, clicker, shop, end overlay).
- */
+
+
 export class GameHud {
-  /**
-   * @param {HTMLElement} mountEl
-   * @param {Object} handlers
-   * @param {function(): void} handlers.onClicker
-   * @param {function(string): void} handlers.onSpawn
-   * @param {function(): void} handlers.onRestart
-   * @param {function(): void} handlers.onStart
-   */
+  
+
   constructor(mountEl, handlers) {
     this.mountEl = mountEl;
     this.overlayRoot = mountEl.parentElement || mountEl;
@@ -111,7 +104,7 @@ export class GameHud {
       </p>
     `;
 
-    // Damage/combo floats + pause chip sit on the canvas game area only.
+    
     const gameEl = document.querySelector(".trex-game");
     if (gameEl) {
       gameEl.classList.add("revenge-game-stage");
@@ -125,7 +118,7 @@ export class GameHud {
       this.gameFx = gameFx;
     }
 
-    // Overlays cover HUD + canvas (parent wrap).
+    
     const overlayHost = document.createElement("div");
     overlayHost.className = "revenge-overlay-host";
     overlayHost.innerHTML = `
@@ -288,9 +281,8 @@ export class GameHud {
     }
   }
 
-  /**
-   * Re-apply static + open overlay strings after locale change.
-   */
+  
+
   refreshLocale() {
     applyStaticI18n(this.mountEl);
     if (this.gameFx) {
@@ -328,10 +320,8 @@ export class GameHud {
     }
   }
 
-  /**
-   * Show floating +N near the clicker.
-   * @param {number} amount
-   */
+  
+
   showClickFeedback(amount) {
     const el = document.createElement("span");
     el.className = "revenge-float-text";
@@ -348,13 +338,8 @@ export class GameHud {
     setTimeout(() => el.remove(), 700);
   }
 
-  /**
-   * Damage / combo float over the canvas game area.
-   * @param {number|string} amount
-   * @param {Object=} opts
-   * @param {boolean=} opts.meteor
-   * @param {boolean=} opts.combo
-   */
+  
+
   showDamageFloat(amount, opts) {
     opts = opts || {};
     if (!this.els.canvasFloats) {
@@ -378,9 +363,8 @@ export class GameHud {
     setTimeout(() => el.remove(), 900);
   }
 
-  /**
-   * @param {HTMLElement} containerEl runner container
-   */
+  
+
   shakeCanvas(containerEl) {
     if (!containerEl) {
       return;
@@ -397,9 +381,8 @@ export class GameHud {
     }
   }
 
-  /**
-   * @param {Object} state
-   */
+  
+
   update(state) {
     const {
       bones,
@@ -454,9 +437,8 @@ export class GameHud {
     this.els.clicker.classList.toggle("is-disabled", ended || paused);
   }
 
-  /**
-   * @param {Object} stats
-   */
+  
+
   renderVictoryMessage(stats) {
     const escapePct = Math.min(100, Math.floor(stats.escapeProgress || 0));
     const elapsedSec = ((stats.elapsedMs || 0) / 1000).toFixed(1);
@@ -492,9 +474,8 @@ export class GameHud {
     this.els.overlayMsg.textContent = msg;
   }
 
-  /**
-   * @param {Object} stats
-   */
+  
+
   showVictory(stats) {
     stats = stats || {};
     const escapePct = Math.min(100, Math.floor(stats.escapeProgress || 0));
@@ -524,9 +505,8 @@ export class GameHud {
     this.els.overlay.classList.remove("hidden");
   }
 
-  /**
-   * @param {Object} stats
-   */
+  
+
   renderDefeatMessage(stats) {
     const hpLeft = Math.max(0, Math.ceil(stats.hpLeft || 0));
     const maxHp = stats.maxHp || REVENGE_CONFIG.MAX_HP;
@@ -542,9 +522,8 @@ export class GameHud {
     this.els.overlayMsg.textContent = msg;
   }
 
-  /**
-   * @param {Object} stats
-   */
+  
+
   showDefeat(stats) {
     stats = stats || {};
     this.lastEndKind = "defeat";
@@ -642,9 +621,8 @@ export class GameHud {
     }
   }
 
-  /**
-   * @return {boolean}
-   */
+  
+
   updateBestRun(run) {
     const prev = this.readBestRun() || {
       escapePct: Infinity,
@@ -667,7 +645,7 @@ export class GameHud {
       try {
         localStorage.setItem(BEST_RUN_KEY, JSON.stringify(next));
       } catch (e) {
-        /* ignore */
+        
       }
     }
     return improved;

@@ -61,7 +61,7 @@ const A11Y_STRINGS = {
 
 const loadTimeData = undefined;
 
-// @change -> Refactored Functional to Class based structure
+
 export class Runner {
   /**
    * Default game configuration.
@@ -240,7 +240,7 @@ export class Runner {
   };
 
   constructor(outerContainerEl, opt_config) {
-    // @change -> Disabled Singleton Pattern
+    
     // if (Runner.instance_) {
     //   return Runner.instance_;
     // }
@@ -509,7 +509,7 @@ export class Runner {
    * Game initialiser.
    */
   init() {
-    // @change -> Added runner class to window (this was to remove circular dependency issues)
+    
     window.Runner = Runner;
 
     // Hide the static icon.
@@ -606,7 +606,7 @@ export class Runner {
     this.tRex = new Trex(this.canvas, this.spriteDef.TREX);
 
     this.outerContainerEl.appendChild(this.containerEl);
-    // @change -> Hide the slow speed control
+    
     // this.outerContainerEl.appendChild(this.slowSpeedCheckboxLabel);
 
     this.startListening();
@@ -628,9 +628,8 @@ export class Runner {
     });
   }
 
-  /**
-   * Wire Revenge of the Desert clicker/spawner systems.
-   */
+  
+
   initRevengeMode() {
     this.revengeMode = true;
     this.economy = new Economy();
@@ -747,7 +746,7 @@ export class Runner {
       this.tRex.playingIntro = true;
 
       // CSS animation definition — use a local stylesheet (index 0 may be
-      // a cross-origin Google Fonts sheet that throws on insertRule).
+      
       const keyframes =
         `@-webkit-keyframes intro { ` +
         `from { width:${Trex.config.WIDTH}px }` +
@@ -875,7 +874,7 @@ export class Runner {
     this.updatePending = false;
 
     const now = getTimeStamp();
-    // Cap spikes (tab blur / long stalls) so escape/HP systems cannot jump seconds.
+    
     let deltaTime = Math.min(now - (this.time || now), 100);
 
     // Flashing when switching game modes.
@@ -891,7 +890,7 @@ export class Runner {
 
     this.time = now;
 
-    // Revenge pause: freeze simulation but keep RAF alive for UI.
+    
     if (
       this.revengeMode &&
       this.revengePaused &&
@@ -933,7 +932,7 @@ export class Runner {
         ? this.activated && !this.playingIntro
         : this.runningTime > this.config.CLEAR_TIME;
 
-      // Classic: first jump triggers intro. Revenge starts via HUD.
+      
       if (
         !this.revengeMode &&
         this.tRex.jumpCount === 1 &&
@@ -959,7 +958,7 @@ export class Runner {
       if (this.revengeMode) {
         this.updateRevengeFrame(deltaTime, hasObstacles);
       } else {
-        // Classic runner collision / scoring.
+        
         let collision =
           hasObstacles &&
           checkForCollision(this.horizon.obstacles[0], this.tRex);
@@ -1045,7 +1044,7 @@ export class Runner {
       }
     }
 
-    // Keep HUD fresh on the start screen without granting passive bones.
+    
     if (
       this.revengeMode &&
       !this.playing &&
@@ -1065,11 +1064,8 @@ export class Runner {
     }
   }
 
-  /**
-   * Revenge-mode per-frame systems: economy, AI, HP, escape, projectiles.
-   * @param {number} deltaTime
-   * @param {boolean} hasObstacles
-   */
+  
+
   updateRevengeFrame(deltaTime, hasObstacles) {
     if (this.revengeEnded) {
       return;
@@ -1077,7 +1073,7 @@ export class Runner {
 
     this.economy.tick(deltaTime);
 
-    // Slow effect tick (escape only — world/obstacle speed stays normal).
+    
     if (this.slowTimer > 0) {
       this.slowTimer -= deltaTime;
       if (this.slowTimer <= 0) {
@@ -1151,7 +1147,7 @@ export class Runner {
           if (overlapping && !p.arrived) {
             p.arrived = true;
           }
-          // Paid strike: apply once when iframes allow (retries while arrived).
+          
           if (this.iframeTimer <= 0) {
             this.applyRevengeDamage(
               REVENGE_CONFIG.HAZARDS.meteor.damage,
@@ -1168,7 +1164,7 @@ export class Runner {
       }
     }
 
-    // Escape meter + mild acceleration.
+    
     if (this.activated && !this.playingIntro) {
       const escapeFactor =
         this.hurtEscapeTimer > 0
@@ -1312,7 +1308,7 @@ export class Runner {
     if (this.revengeEnded || this.revengePaused) {
       return;
     }
-    // Allow mining before start to bank bones.
+    
     const amount = this.economy.click();
     if (this.hud) {
       this.hud.showClickFeedback(amount);
@@ -1366,7 +1362,7 @@ export class Runner {
     }
 
     const now = getTimeStamp();
-    // Combo tip: Cacto Grande + Ptero only.
+    
     if (hazardId === 'boulder') {
       this.lastGroundHazardAt = now;
     } else if (
@@ -1414,8 +1410,8 @@ export class Runner {
     }
     this.loadSounds();
     this.setPlayStatus(true);
-    // Skip CSS intro — same path as restart — so a stylesheet insertRule
-    // failure cannot leave playingIntro stuck and the world frozen.
+    
+    
     this.activated = true;
     this.playingIntro = false;
     this.revengePaused = false;
@@ -1465,7 +1461,7 @@ export class Runner {
         this.hud.showVictory(stats);
       }
     } else {
-      // Escaped — leave running pose; DOM overlay carries the message.
+      
       this.tRex.update(0, Trex.status.RUNNING);
       if (this.hud) {
         this.hud.showDefeat(stats);
@@ -1534,7 +1530,7 @@ export class Runner {
     this.tRex.reset();
     this.invert(true);
     this.setPlayStatus(true);
-    // Skip CSS intro on restart so ANIM_END cannot leave the run stuck.
+    
     this.activated = true;
     this.playingIntro = false;
     this.tRex.playingIntro = false;
@@ -1720,7 +1716,7 @@ export class Runner {
       e.preventDefault();
     }
 
-    // Revenge: spawn hotkeys + pause (ignore when typing in inputs).
+    
     if (this.revengeMode && e.type === Runner.events.KEYDOWN) {
       const tag = (e.target && e.target.tagName) || '';
       if (tag !== 'INPUT' && tag !== 'TEXTAREA') {
@@ -1748,7 +1744,7 @@ export class Runner {
     }
 
     if (this.revengeMode) {
-      // No player jump / duck / touch-to-jump in revenge mode.
+      
       return;
     }
 
@@ -2059,7 +2055,7 @@ export class Runner {
    * Game over state.
    */
   gameOver() {
-    // Revenge mode uses DOM victory/defeat overlays instead.
+    
     if (this.revengeMode) {
       this.endRevenge(this.dinoHp <= 0);
       return;

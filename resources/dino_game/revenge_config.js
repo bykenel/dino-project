@@ -1,6 +1,5 @@
-/**
- * Revenge of the Desert — shared gameplay constants.
- */
+
+
 export const REVENGE_CONFIG = {
   STARTING_BONES: 65,
   CLICK_REWARD: 2,
@@ -19,13 +18,11 @@ export const REVENGE_CONFIG = {
   SLOW_SPEED_FACTOR: 0.45,
   SLOW_ESCAPE_FACTOR: 0.35,
 
-  // Allow stacking multiple paid spawns; slight offset so they are not identical.
   SPAWN_STACK_OFFSET: 30,
   MAX_LIVE_OBSTACLES: 7,
   METEOR_COOLDOWN_MS: 3500,
 
   PTERO_DUCK_LOCK_MS: 600,
-  // Mid ptero connect rate ≈ this (ducks are reliable when attempted).
   PTERO_MISS_CHANCE: 0.4,
   PTERO_MISS_FLOOR: 0.3,
   COMBO_WINDOW_MS: 1500,
